@@ -142,6 +142,7 @@ body.theme-light .logo span { color: #222 !important; }
           <a href="#" class="sidebar-link" data-tab="import"><i class="fa-solid fa-file-import me-1"></i> Importar</a>
           <a href="#" class="sidebar-link" data-tab="register"><i class="fa-solid fa-list-check me-1"></i> Registrar</a>
           <a href="#" class="sidebar-link" data-tab="history"><i class="fa-solid fa-clock-rotate-left me-1"></i> Historial</a>
+          <a href="#" class="sidebar-link" data-tab="settings"><i class="fa-solid fa-gear me-1"></i> Ajustes</a>
         </nav>
       </div>
       <div class="sidebar-footer" style="padding:1em 1.2em 0.7em 1.2em;display:flex;flex-direction:column;align-items:center;gap:0.7em;">
@@ -175,8 +176,9 @@ body.theme-light .logo span { color: #222 !important; }
     .form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 .2rem rgba(99,102,241,.2)}
     label{color:#cbd5e1;font-size:0.97em;}
 
-    .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.22rem .45rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.12)}
-    .pill i{font-size:.85rem}
+  .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.22rem .45rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.12)}
+  .pill i{font-size:.85rem}
+  .pill span { color: #fff; font-weight: 600; }
     .pill.ok{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.4);color:#a7f3d0}
     .pill.bad{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.4);color:#fecaca}
     .pill.warn{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.4);color:#fde68a}
@@ -376,7 +378,8 @@ body.theme-light .logo span { color: #222 !important; }
     body.theme-light .sidebar-action-btn i { color: var(--primary) !important; }
     body.theme-light .sidebar-action-btn:hover { background: var(--primary); color: #fff; }
     body.theme-light .sidebar-action-btn:hover i { color: #fff !important; }
-    body.theme-light .pill { color:#222; background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.18); }
+  body.theme-light .pill { color:#222; background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.18); }
+  body.theme-light .pill span { color: #222 !important; }
     body.theme-light .pill.prodcount {
       background: linear-gradient(90deg,rgba(99,102,241,.12),rgba(34,197,94,.08));
       border-color: var(--primary);
@@ -426,7 +429,31 @@ body.theme-light .pill.bad {
         </div>
         <div class="row g-3 mt-2">
           <div class="col-md-12 d-grid">
-            <button id="settingsSaveFixedLoc" class="btn btn-outline-primary"><i class="fa-solid fa-thumbtack me-2"></i>Fijar piso y pasillo</button>
+            <button id="settingsSaveFixedLoc" class="btn btn-outline-primary" style="padding-top:6px;padding-bottom:6px;min-height:32px;"><i class="fa-solid fa-thumbtack me-2"></i>Fijar piso y pasillo</button>
+            <a href="https://wa.me/51929572070?text=Hola%2C%20necesito%20ayuda%20con%20el%20sistema%20de%20Auditor%C3%ADa%20de%20Ubicaciones.%20Mi%20nombre%20es%3A%20" target="_blank" class="btn btn-success d-flex align-items-center mt-2" style="gap:8px;min-height:32px;">
+              <i class="fa-brands fa-whatsapp" style="font-size:1.2em;"></i>
+              Solicitar ayuda por WhatsApp
+            </a>
+            <div style="height:10px;"></div>
+            <style>
+              .btn.btn-success.whatsapp-compact {
+                padding: 4px 12px !important;
+                border-radius: 18px !important;
+                font-size: 0.98em !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: 180px;
+                background: #25d366 !important;
+                color: #fff !important;
+                box-shadow: 0 2px 8px rgba(34,197,94,0.10);
+                border: none !important;
+                transition: background 0.2s;
+              }
+              .btn.btn-success.whatsapp-compact:hover {
+                background: #1ebe57 !important;
+                color: #fff !important;
+              }
+            </style>
           </div>
         </div>
         <div class="row g-3">
@@ -456,7 +483,7 @@ body.theme-light .pill.bad {
           <b>Versión:</b> 1.0 &nbsp; | &nbsp; <b>Desarrollador:</b> © 2025 Miguel Fajardo. Todos los derechos reservados.
 <br>
           <b>Descripción:</b> App para auditoría y control de ubicaciones de productos.<br>
-          <b>Soporte:</b> <a href="mailto:soporte@ejemplo.com" style="color:var(--primary)">soporte@ejemplo.com</a>
+          <b>Soporte:</b> <a href="mailto:logistica@tiendasapolo.com.pe" style="color:var(--primary)">logistica@tiendasapolo.com.pe</a>
         </div>
       </div>
     </section>
@@ -1429,8 +1456,13 @@ function mostrarEstadoBloqueoAjustes() {
       sidebarLinks.forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          activateTab(link.getAttribute('data-tab'));
+          const tab = link.getAttribute('data-tab');
+          activateTab(tab);
           closeSidebarMenu();
+          if(tab === 'settings') {
+            // Si el panel de ajustes está oculto, lo muestra igual que el botón de ajustes
+            // (activateTab ya lo hace, pero aquí puedes agregar lógica extra si el modal fuera distinto)
+          }
         });
         link.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
