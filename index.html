@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auditoría / Control de Ubicaciones</title>
+  <!-- UI base -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- SweetAlert -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Excel: lectura y exportación -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --primary:#6366f1; --primary-dark:#4f46e5; --bg:#0b1020; --card:#12172a; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0b1020 0%,#111827 100%);color:var(--text)}
+      html{font-size:14px;}
+      body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0b1020 0%,#111827 100%);color:var(--text)}
+
+      .app-nav{position:sticky;top:0;z-index:30;backdrop-filter:blur(12px);background:rgba(15,23,42,.6);border-bottom:1px solid rgba(255,255,255,.08);font-size:0.95em;}
+      .logo{display:flex;gap:.6rem;align-items:center;font-weight:700;letter-spacing:.4px;font-size:1em;}
+      .logo i{color:var(--primary)}
+      .logo span { color: #fff; }
+body.theme-light .logo span { color: #222 !important; }
+      .tab-btn{color:#cbd5e1;border:0;background:transparent;padding:.6rem .7rem;border-radius:.8rem;font-size:0.95em;}
+      .tab-btn.active,.tab-btn:hover{background:rgba(99,102,241,.12);color:#fff}
+
+      .container-narrow{max-width:1024px;margin:0 auto;padding:16px}
+
+      .cardx{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:0.97em;}
+      .shadow-soft{box-shadow:0 8px 24px rgba(2,6,23,.35)}
+      .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:10px 0}
+
+      .form-control,.form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e5e7eb;font-size:0.97em;}
+      .form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 .2rem rgba(99,102,241,.2)}
+      label{color:#cbd5e1;font-size:0.97em;}
+
+      .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.22rem .45rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.12)}
+      .pill i{font-size:.85rem}
+      .pill.ok{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.4);color:#a7f3d0}
+    .pill.bad{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.4);color:#fecaca}
+    body.theme-light .pill.ok {
+      background:rgba(34,197,94,.18);
+      border-color:rgba(34,197,94,.5);
+      color:#15803d;
+      font-weight:600;
+    }
+    body.theme-light .pill.bad {
+      background:rgba(239,68,68,.18);
+      border-color:rgba(239,68,68,.5);
+      color:#b91c1c;
+      font-weight:600;
+    }
+      .pill.warn{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.4);color:#fde68a}
+  .pill.prodcount {
+    background: linear-gradient(90deg,rgba(99,102,241,.18),rgba(34,197,94,.10));
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+    font-weight: 600;
+  }
+  .pill.prodcount i {
+    color: #a7f3d0 !important;
+    text-shadow: 0 1px 4px rgba(99,102,241,0.25);
+  }
+
+      .suggestions{position:relative}
+      .suggestions-list{position:absolute;top:100%;left:0;right:0;background:#0b1227;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-top:4px;max-height:220px;overflow:auto;z-index:20;font-size:0.97em;}
+      .suggestion-item{padding:7px 10px;cursor:pointer;display:flex;align-items:center;gap:8px}
+      .suggestion-item:hover{background:rgba(99,102,241,.12)}
+      .suggestion-code{font-weight:700;color:#c7d2fe}
+      .suggestion-name{color:#cbd5e1;flex:1}
+
+      .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+      .kpi{display:flex;gap:.4rem;align-items:center}
+      .kpi .label{color:#94a3b8;font-size:.75rem}
+      .kpi .value{font-weight:700}
+
+      .badge-loc{display:inline-flex;align-items:center;gap:.25rem;border-radius:8px;padding:.18rem .38rem;font-weight:700;font-size:.75rem;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#c7d2fe;cursor:default}
+      .badge-loc .more{cursor:pointer;opacity:.85}
+
+      .btn-primary{background:var(--primary);border-color:var(--primary)}
+      .btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
+
+      @media (max-width: 600px) {
+        html{font-size:11px;}
+        .container-narrow{padding:2px;}
+        .cardx{padding:4px; border-radius:8px; font-size:0.92em;}
+        .kpi-grid{gap:2px;}
+        .badge-loc{font-size:.62rem;}
+        .pill{font-size:.62rem;}
+        .tab-btn{padding:.3rem .3rem; font-size:0.92em;}
+        .form-control, .form-select {font-size:0.92em; padding:4px 6px;}
+        label {font-size:0.92em;}
+        .btn, .btn-primary, .btn-outline-light, .btn-outline-danger {font-size:0.92em; padding:4px 8px;}
+        .table-responsive {overflow-x: auto;}
+        .table-dark th, .table-dark td {padding:4px 6px; font-size:0.92em;}
+        #productInfo .cardx {padding:2px 2px;}
+        #productInfo .row {flex-direction:column;}
+        #productInfo .label, #productInfo .value {font-size:0.85em;}
+        #productInfo .badge-loc {font-size:0.62em;}
+        .sidebar-menu.open { width: 95vw; min-width: 140px; }
+        .sidebar-link { font-size: 0.95em; padding: 0.5em 0.5em; }
+        .sidebar-header, .sidebar-nav { padding-left: 0.4em; padding-right: 0.4em; }
+      }
+
+    .module{display:none}
+    .module.active{display:block}
+
+    .spinner-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,.55);z-index:50;}
+    .spinner-wrap.show{display:flex}
+
+    .table-dark{--bs-table-bg:#0f172a;--bs-table-striped-bg:#0b1227}
+  </style>
+</head>
+<body>
+  <nav class="app-nav py-2">
+    <div class="container-narrow d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <button id="menuBtn" class="hamburger-btn" aria-label="Abrir menú"><span class="hamburger-icon">&#9776;</span></button>
+        <div class="logo"><i class="fa-solid fa-boxes-stacked"></i><span>Control de Ubicaciones</span></div>
+      </div>
+      <div id="userBadge" class="pill warn"><i class="fa-solid fa-user"></i><span>Invitado</span></div>
+    </div>
+  </nav>
+
+  <!-- Sidebar menú hamburguesa -->
+  <aside id="sidebarMenu" class="sidebar-menu">
+    <div class="sidebar-content" style="height:100%;display:flex;flex-direction:column;justify-content:space-between;">
+      <div>
+        <div class="sidebar-header">
+          <span class="logo"><i class="fa-solid fa-boxes-stacked"></i> <b>Menú</b></span>
+          <button id="closeSidebar" class="close-btn" aria-label="Cerrar menú">&times;</button>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="sidebar-link" data-tab="import"><i class="fa-solid fa-file-import me-1"></i> Importar</a>
+          <a href="#" class="sidebar-link" data-tab="register"><i class="fa-solid fa-list-check me-1"></i> Registrar</a>
+          <a href="#" class="sidebar-link" data-tab="history"><i class="fa-solid fa-clock-rotate-left me-1"></i> Historial</a>
+        </nav>
+      </div>
+      <div class="sidebar-footer" style="padding:1em 1.2em 0.7em 1.2em;display:flex;flex-direction:column;align-items:center;gap:0.7em;">
+        <div style="display:flex;gap:1em;width:100%;justify-content:center;">
+          <button id="btnSettings" class="sidebar-action-btn" title="Ajustes"><i class="fa-solid fa-gear"></i></button>
+          <button id="btnTheme" class="sidebar-action-btn" title="Cambiar tema"><i class="fa-solid fa-circle-half-stroke"></i></button>
+        </div>
+        <div style="font-size:0.92em;color:var(--muted);text-align:center;margin-top:0.7em;">&copy; Miguel Fajardo 2025</div>
+      </div>
+    </div>
+  </aside>
+  <style>
+    /* Centralizado: todo el CSS aquí */
+    :root{
+      --primary:#6366f1; --primary-dark:#4f46e5; --bg:#f3f4f6; --card:#fff; --muted:#64748b; --text:#222; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0b1020 0%,#111827 100%);color:var(--text)}
+    html{font-size:14px;}
+    .app-nav{position:sticky;top:0;z-index:30;backdrop-filter:blur(12px);background:rgba(15,23,42,.6);border-bottom:1px solid rgba(255,255,255,.08);font-size:0.95em;}
+    .logo{display:flex;gap:.6rem;align-items:center;font-weight:700;letter-spacing:.4px;font-size:1em;}
+    .logo i{color:var(--primary)}
+    .logo span { color: #fff; }
+    .tab-btn{color:#cbd5e1;border:0;background:transparent;padding:.6rem .7rem;border-radius:.8rem;font-size:0.95em;}
+    .tab-btn.active,.tab-btn:hover{background:rgba(99,102,241,.12);color:#fff}
+    .container-narrow{max-width:1024px;margin:0 auto;padding:16px}
+    .cardx{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:0.97em;}
+    .shadow-soft{box-shadow:0 8px 24px rgba(2,6,23,.35)}
+    .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:10px 0}
+    .form-control,.form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e5e7eb;font-size:0.97em;}
+    .form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 .2rem rgba(99,102,241,.2)}
+    label{color:#cbd5e1;font-size:0.97em;}
+
+    .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.22rem .45rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid rgba(255,255,255,.12)}
+    .pill i{font-size:.85rem}
+    .pill.ok{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.4);color:#a7f3d0}
+    .pill.bad{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.4);color:#fecaca}
+    .pill.warn{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.4);color:#fde68a}
+    .suggestions{position:relative}
+    .suggestions-list{position:absolute;top:100%;left:0;right:0;background:#0b1227;border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-top:4px;max-height:220px;overflow:auto;z-index:20;font-size:0.97em;}
+    .suggestion-item{padding:7px 10px;cursor:pointer;display:flex;align-items:center;gap:8px}
+    .suggestion-item:hover{background:rgba(99,102,241,.12)}
+    .suggestion-code{font-weight:700;color:#c7d2fe}
+    .suggestion-name{color:#cbd5e1;flex:1}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+    .kpi{display:flex;gap:.4rem;align-items:center}
+    .kpi .label{color:#94a3b8;font-size:.75rem}
+    .kpi .value{font-weight:700}
+    .badge-loc{display:inline-flex;align-items:center;gap:.25rem;border-radius:8px;padding:.18rem .38rem;font-weight:700;font-size:.75rem;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#c7d2fe;cursor:default}
+    .badge-loc .more{cursor:pointer;opacity:.85}
+    .btn-primary{background:var(--primary);border-color:var(--primary)}
+    .btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
+    .app-nav { color: #fff; }
+    .cardx h5, .cardx .mb-0, .cardx .mb-2 { color: #fff; }
+  .cardx h5, .cardx .mb-0, .cardx .mb-2, .cardx h5 i, .cardx .mb-0 i, .cardx .mb-2 i { color: #fff; }
+    .sidebar-header .logo, .sidebar-header .logo span { color: #fff !important; }
+    .sidebar-link { color: #e5e7eb !important; }
+    .sidebar-link.active, .sidebar-link:hover { color: #fff !important; background: var(--primary); }
+    .sidebar-action-btn i { color: var(--primary) !important; }
+    .sidebar-menu {
+        position: fixed; top: 0; left: 0; height: 100vh; width: 0; background: rgba(15,23,42,0.98); z-index: 100;
+        overflow: hidden; transition: width 0.35s cubic-bezier(.4,0,.2,1), box-shadow 0.25s;
+        box-shadow: 0 0 0 rgba(0,0,0,0);
+        will-change: width, box-shadow;
+      }
+      .sidebar-menu.open {
+        width: 260px;
+        box-shadow: 0 0 40px rgba(0,0,0,0.25);
+        animation: sidebarFadeIn 0.35s cubic-bezier(.4,0,.2,1);
+      }
+      @keyframes sidebarFadeIn {
+        from { box-shadow: 0 0 0 rgba(0,0,0,0); }
+        to { box-shadow: 0 0 40px rgba(0,0,0,0.25); }
+      }
+      .sidebar-content { height: 100%; display: flex; flex-direction: column; }
+      .sidebar-header {
+        display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem 0.5rem 1.2rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        background: linear-gradient(90deg,rgba(99,102,241,.08),rgba(34,197,94,.04));
+      }
+      .close-btn {
+        background: none; border: none; font-size: 2em; color: var(--danger); cursor: pointer; padding: 0 0.3em;
+        border-radius: 8px; transition: background 0.2s, transform 0.2s;
+        outline: none;
+      }
+      .close-btn:focus {
+        box-shadow: 0 0 0 2px var(--primary);
+        background: rgba(99,102,241,0.12);
+      }
+      .close-btn:hover {
+        background: rgba(239,68,68,0.12);
+        transform: scale(1.08) rotate(-10deg);
+      }
+      .sidebar-nav {
+        display: flex; flex-direction: column; gap: 0.5em; padding: 1em 1.2em;
+      }
+      .sidebar-link {
+        color: var(--text); text-decoration: none; font-size: 1.08em; padding: 0.7em 1em; border-radius: 8px;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        display: flex; align-items: center; gap: 0.7em;
+        outline: none;
+        position: relative;
+      }
+      .sidebar-link:focus {
+        box-shadow: 0 0 0 2px var(--primary);
+        background: rgba(99,102,241,0.18);
+        color: #fff;
+      }
+      .sidebar-link:hover, .sidebar-link.active {
+        background: var(--primary); color: #fff;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.12);
+      }
+      .sidebar-link i {
+        transition: transform 0.2s;
+      }
+      .sidebar-link:hover i, .sidebar-link.active i {
+        transform: scale(1.15) rotate(-8deg);
+      }
+      .sidebar-action-btn {
+        background: none; border: none; font-size: 1.3em; color: var(--primary); cursor: pointer; border-radius: 8px;
+        padding: 0.3em 0.7em; transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        outline: none;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .sidebar-action-btn:focus {
+        box-shadow: 0 0 0 2px var(--primary);
+        background: rgba(99,102,241,0.12);
+      }
+      .sidebar-action-btn:hover {
+        background: var(--primary); color: #fff;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.12);
+        transform: scale(1.12);
+      }
+      .sidebar-footer {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        background: linear-gradient(90deg,rgba(99,102,241,.08),rgba(34,197,94,.04));
+      }
+      /* Animación icono hamburguesa */
+      .hamburger-btn {
+        background: none; border: none; font-size: 2em; color: var(--primary); cursor: pointer; border-radius: 8px;
+        padding: 0.2em 0.5em; transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        outline: none;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .hamburger-btn:focus {
+        box-shadow: 0 0 0 2px var(--primary);
+        background: rgba(99,102,241,0.12);
+      }
+      .hamburger-btn:hover {
+        background: var(--primary); color: #fff;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.12);
+        transform: scale(1.08);
+      }
+      .hamburger-icon {
+        display: inline-block; transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      }
+      .sidebar-menu.open .hamburger-icon {
+        transform: rotate(90deg) scale(1.2);
+      }
+      @media (max-width: 600px) {
+        .sidebar-menu.open { width: 95vw; min-width: 140px; }
+        .sidebar-link { font-size: 0.95em; padding: 0.5em 0.5em; }
+        .sidebar-header, .sidebar-nav { padding-left: 0.4em; padding-right: 0.4em; }
+        .sidebar-footer { padding:0.7em 0.4em; }
+        .sidebar-action-btn { font-size: 1.2em; padding: 0.3em 0.5em; }
+        .sidebar-footer div { font-size:0.85em; }
+      }
+    @media (max-width: 600px) {
+      html{font-size:11px;}
+      .container-narrow{padding:2px;}
+      .cardx{padding:4px; border-radius:8px; font-size:0.92em;}
+      .kpi-grid{gap:2px;}
+      .badge-loc{font-size:.62rem;}
+      .pill{font-size:.62rem;}
+      .tab-btn{padding:.3rem .3rem; font-size:0.92em;}
+      .form-control, .form-select {font-size:0.92em; padding:4px 6px;}
+      label {font-size:0.92em;}
+      .btn, .btn-primary, .btn-outline-light, .btn-outline-danger {font-size:0.92em; padding:4px 8px;}
+      .table-responsive {overflow-x: auto;}
+      .table-dark th, .table-dark td {padding:4px 6px; font-size:0.92em;}
+      #productInfo .cardx {padding:2px 2px;}
+      #productInfo .row {flex-direction:column;}
+      #productInfo .label, #productInfo .value {font-size:0.85em;}
+      #productInfo .badge-loc {font-size:0.62em;}
+      .sidebar-menu.open { width: 95vw; min-width: 140px; }
+      .sidebar-link { font-size: 0.95em; padding: 0.5em 0.5em; }
+      .sidebar-header, .sidebar-nav { padding-left: 0.4em; padding-right: 0.4em; }
+      .sidebar-footer { padding:0.7em 0.4em; }
+      .sidebar-action-btn { font-size: 1.2em; padding: 0.3em 0.5em; }
+      .sidebar-footer div { font-size:0.85em; }
+    }
+    body.theme-light {
+      --primary:#6366f1; --primary-dark:#4f46e5; --bg:#f3f4f6; --card:#fff; --muted:#64748b; --text:#222; --accent:#22c55e; --danger:#ef4444; --warning:#f59e0b;
+      background:linear-gradient(180deg,#f3f4f6 0%,#e5e7eb 100%);
+    }
+    body.theme-light .app-nav { background: rgba(255,255,255,.8); border-bottom:1px solid rgba(0,0,0,.06); }
+    body.theme-light .cardx { background:linear-gradient(180deg,rgba(99,102,241,.04),rgba(99,102,241,.01)); color:#222; }
+    body.theme-light .cardx h5, body.theme-light .cardx .mb-0, body.theme-light .cardx .mb-2,
+    body.theme-light .cardx h5 i, body.theme-light .cardx .mb-0 i, body.theme-light .cardx .mb-2 i {
+      color: var(--primary-dark);
+    }
+    body.theme-light .sidebar-menu { background:rgba(255,255,255,0.98); color:#222; }
+    body.theme-light .sidebar-header .logo, body.theme-light .sidebar-header .logo span { color: #222 !important; }
+    body.theme-light .sidebar-link { color:#222 !important; }
+    body.theme-light .sidebar-link i { color: var(--primary) !important; }
+    body.theme-light .sidebar-link:hover, body.theme-light .sidebar-link.active { background: var(--primary); color: #fff !important; }
+    body.theme-light .sidebar-link:hover i, body.theme-light .sidebar-link.active i { color: #fff !important; }
+    body.theme-light .sidebar-action-btn { background: #f3f4f6; color: var(--primary); }
+    body.theme-light .sidebar-action-btn i { color: var(--primary) !important; }
+    body.theme-light .sidebar-action-btn:hover { background: var(--primary); color: #fff; }
+    body.theme-light .sidebar-action-btn:hover i { color: #fff !important; }
+    body.theme-light .pill { color:#222; background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.18); }
+    body.theme-light .pill.prodcount {
+      background: linear-gradient(90deg,rgba(99,102,241,.12),rgba(34,197,94,.08));
+      border-color: var(--primary);
+      color: #222;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+      font-weight: 600;
+    }
+    body.theme-light .pill.prodcount i {
+      color: var(--primary) !important;
+      text-shadow: 0 1px 4px rgba(99,102,241,0.12);
+    }
+    body.theme-light .badge-loc { color:#222; background:rgba(99,102,241,.10); border-color:rgba(99,102,241,.25); }
+    body.theme-light .btn-primary { background:var(--primary); color:#fff; }
+    body.theme-light .btn-outline-light { background:#fff; color:var(--primary); border-color:var(--primary); }
+    body.theme-light .btn-outline-danger { background:#fff; color:var(--danger); border-color:var(--danger); }
+    body.theme-light .form-control, body.theme-light .form-select { background:#fff; color:#222; border-color:rgba(99,102,241,.15); }
+    body.theme-light label { color:#222; }
+body.theme-light .pill.ok {
+  background:rgba(34,197,94,.18);
+  border-color:rgba(34,197,94,.5);
+  color:#15803d;
+  font-weight:600;
+}
+body.theme-light .pill.bad {
+  background:rgba(239,68,68,.18);
+  border-color:rgba(239,68,68,.5);
+  color:#b91c1c;
+  font-weight:600;
+}
+  </style>
+
+  <div class="container-narrow">
+    <!-- AJUSTES -->
+    <section id="module-settings" class="module">
+      <div class="cardx shadow-soft">
+        <h5 class="mb-2"><i class="fa-solid fa-gear me-2"></i>Ajustes</h5>
+        <div class="divider"></div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Fijar piso</label>
+            <input id="settingsFixedPiso" class="form-control" type="text" maxlength="3" placeholder="Ej: P5">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Fijar pasillo</label>
+            <input id="settingsFixedPasillo" class="form-control" type="text" maxlength="2" placeholder="Ej: E">
+          </div>
+        </div>
+        <div class="row g-3 mt-2">
+          <div class="col-md-12 d-grid">
+            <button id="settingsSaveFixedLoc" class="btn btn-outline-primary"><i class="fa-solid fa-thumbtack me-2"></i>Fijar piso y pasillo</button>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Tema visual</label>
+            <select id="settingsTheme" class="form-select">
+              <option value="dark">Oscuro</option>
+              <option value="light">Claro</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Usuario actual</label>
+            <div class="pill" id="settingsUser"><i class="fa-solid fa-user"></i> <span id="settingsUserName">Invitado</span></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row g-3">
+          <div class="col-md-6 d-grid">
+            <button id="settingsResetCatalog" class="btn btn-outline-danger"><i class="fa-solid fa-eraser me-2"></i>Resetear catálogo</button>
+          </div>
+          <div class="col-md-6 d-grid">
+            <button id="settingsResetHistory" class="btn btn-outline-danger"><i class="fa-solid fa-trash-can me-2"></i>Resetear historial</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="mt-2 small text-secondary">
+          <b>Versión:</b> 1.0 &nbsp; | &nbsp; <b>Desarrollador:</b> Miguel Fajardo<br>
+          <b>Descripción:</b> App para auditoría y control de ubicaciones de productos.<br>
+          <b>Soporte:</b> <a href="mailto:soporte@ejemplo.com" style="color:var(--primary)">soporte@ejemplo.com</a>
+        </div>
+      </div>
+    </section>
+    <section id="module-import" class="module active">
+      <div class="cardx shadow-soft">
+        <h5 class="mb-2"><i class="fa-solid fa-file-import me-2"></i>Importar data de productos</h5>
+        <p class="text-secondary mb-3">Carga el archivo Excel base (mismas columnas que tu app original). <strong>Opcional:</strong> agrega una columna <em>Ubicación</em> para la ubicación preferente del producto.</p>
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Archivo Excel (.xlsx / .xls)</label>
+            <input id="fileInput" type="file" class="form-control" accept=".xlsx,.xls" />
+          </div>
+          <div class="col-md-4 d-flex align-items-end gap-2">
+            <button id="btnClearData" class="btn btn-outline-light w-100"><i class="fa-solid fa-eraser me-2"></i>Limpiar catálogo</button>
+              <button id="btnDownloadTemplate" class="btn btn-outline-primary w-100"><i class="fa-solid fa-download me-2"></i>Descargar plantilla</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div id="importStatus" class="small text-secondary">Aún no se ha importado data.</div>
+        <div class="mt-3">
+          <details>
+            <summary class="text-info">Plantilla esperada (encabezados admitidos)</summary>
+            <div class="mt-2 small text-secondary">
+              <ul>
+                <li><b>Cód. barras</b> (p. ej. <code>EAN|UPC|PLU</code>) – nombres aceptados: <code>barcodes</code>, <code>cod_barras</code>, <code>codigo_barras</code></li>
+                <li><b>Código</b> – <code>code</code>, <code>codigo</code></li>
+                <li><b>Nombre</b> – <code>name</code>, <code>nombre</code></li>
+                <li><b>Unidad/Medida</b> – <code>measure</code>, <code>unidad</code>, <code>medida</code></li>
+                <li><b>Estado</b> (1 = activo, 0 = inactivo) – <code>status</code>, <code>estado</code></li>
+                <li><b>Stock</b> – <code>stock</code></li>
+                <li><b>Ubicación</b> <em>(opcional)</em> – <code>location</code>, <code>ubicacion</code></li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTER -->
+    <section id="module-register" class="module">
+      <div class="cardx shadow-soft">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fa-solid fa-list-check me-2"></i>Registrar ubicación</h5>
+          <div class="pill prodcount"><i class="fa-solid fa-database"></i> <span id="catalogSize">0</span> prod.</div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Buscar producto (código, nombre o código de barras)</label>
+            <div class="suggestions">
+              <input id="search" class="form-control" type="text" placeholder="Ej: 7750..., LECHE ENTERA, 12345" autocomplete="off" disabled>
+              <div id="suggestions" class="suggestions-list d-none"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="productInfo" class="mt-3 d-none">
+          <div class="cardx mb-2" style="padding:8px 10px;">
+            <div class="row g-1 align-items-center">
+              <div class="col-12 col-md-6 mb-1 mb-md-0"><span class="label">Código:</span> <span class="value" id="kpiCode">—</span></div>
+              <div class="col-12 col-md-6 mb-1 mb-md-0"><span class="label">Nombre:</span> <span class="value" id="kpiName">—</span></div>
+            </div>
+          </div>
+          <div class="cardx mb-2" style="padding:8px 10px;">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div><span class="label">Estado:</span> <span id="kpiStatus">—</span></div>
+              <div><span class="label">Stock:</span> <span class="value" id="kpiStock">—</span></div>
+              <div>
+                <span class="badge-loc" id="badgePrefLocation" title="Ubicación preferente"> <i class="fa-solid fa-location-dot"></i> <span id="prefLocText">Sin data</span> <i id="prefLocMore" class="fa-regular fa-circle-question more d-none" title="Ver completa"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+  </style>
+
+  <style>
+    @media (max-width: 600px) {
+      #productInfo .cardx {padding:4px 4px;}
+      #productInfo .row {flex-direction:column;}
+      #productInfo .label, #productInfo .value {font-size:0.9em;}
+      #productInfo .badge-loc {font-size:0.7em;}
+    }
+  </style>
+
+        <div class="divider"></div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-md-7">
+            <label class="form-label">Ubicación a registrar (formato estándar)</label>
+            <div class="d-flex flex-wrap gap-2">
+              <input id="inputPiso" class="form-control" type="text" maxlength="3" style="max-width:70px" placeholder="Piso (P5)">
+              <input id="inputPasillo" class="form-control" type="text" maxlength="1" style="max-width:60px" placeholder="Pasillo (E)">
+              <input id="inputEstanteNivel" class="form-control" type="text" maxlength="4" style="max-width:80px" placeholder="Estante+Nivel (4C)">
+            </div>
+            <div class="small text-secondary mt-1">Ejemplo: Piso <b>P5</b> &nbsp;|&nbsp; Pasillo <b>E</b> &nbsp;|&nbsp; Estante+Nivel <b>4C</b> &rarr; <b>P5-E-4C</b></div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Cantidad <span class="text-secondary">(opcional)</span></label>
+            <div class="input-group">
+              <button id="toggleQty" class="btn btn-outline-light" title="Mostrar/Ocultar campo cantidad"><i class="fa-solid fa-plus"></i></button>
+              <input id="inputQty" class="form-control" type="number" inputmode="numeric" min="0" placeholder="0" style="display:none">
+            </div>
+          </div>
+          <div class="col-md-3 d-grid d-md-block">
+            <button id="btnSave" class="btn btn-primary w-100"><i class="fa-solid fa-floppy-disk me-2"></i>Guardar registro</button>
+          </div>
+        </div>
+
+        <div class="mt-3 small text-secondary">
+          * Registrar una <b>ubicación</b> es obligatorio. La <b>cantidad</b> es opcional y no bloquea el guardado.
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="module-history" class="module">
+      <div class="cardx shadow-soft">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>Historial</h5>
+          <div class="d-flex gap-2">
+            <button id="btnExport" class="btn btn-outline-light"><i class="fa-solid fa-file-excel me-2"></i>Descargar Excel</button>
+            <button id="btnClearHistory" class="btn btn-outline-danger"><i class="fa-solid fa-trash-can me-2"></i>Limpiar</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="row g-2 align-items-center mb-2">
+          <div class="col-md-6">
+            <input id="historySearch" class="form-control" placeholder="Filtrar por código, nombre o ubicación..." />
+          </div>
+          <div class="col-md-6 text-end small text-secondary" id="historyCount">0 registros</div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-dark table-striped align-middle" id="historyTable">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Ubicación registrada</th>
+                <th>Ubicación preferente</th>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Spinner global -->
+  <div id="spinner" class="spinner-wrap">
+    <div class="text-center">
+      <div class="spinner-border text-light" role="status"></div>
+      <div class="mt-2">Procesando...</div>
+    </div>
+  </div>
+
+  <script>
+    // ======= Constantes y helpers =======
+    const STORAGE = {
+      PRODUCTS: 'inventoryProducts',
+      COUNTS: 'inventoryCounts',
+      AUTH: 'authUser'
+    };
+    const MAX_SUGGESTIONS = 10;
+  const LOCATION_DISPLAY_MAX = 9; // longitud visual máxima del badge (ahora 9)
+
+    const $ = (sel, parent=document) => parent.querySelector(sel);
+    const $$ = (sel, parent=document) => [...parent.querySelectorAll(sel)];
+
+    const showSpinner = (v) => { $('#spinner').classList.toggle('show', !!v); };
+    const toast = (icon, title, text) => Swal.fire({icon, title, text, timer: 1500, showConfirmButton:false});
+
+    const normalize = (s) => (s||'').toString().trim();
+    const toInt = (v, def=0) => {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : def;
+    };
+    const toNum = (v, def=0) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : def;
+    };
+
+    const readLS = (k, d) => { try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch{ return d } };
+    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+    const getUser = () => sessionStorage.getItem(STORAGE.AUTH);
+    const setUser = (u) => sessionStorage.setItem(STORAGE.AUTH, u);
+
+    function truncateLoc(loc){
+      if(!loc) return {short:'Sin data', full:''};
+      const s = String(loc);
+      if(s.length <= LOCATION_DISPLAY_MAX){ return {short:s, full:s}; }
+      return {short: s.slice(0, LOCATION_DISPLAY_MAX) + '…', full:s};
+    }
+
+    function headersMap(row0){
+      // Devuelve un mapeo {barcodes, code, name, measure, status, stock, location?}
+      const map = {};
+      const h = row0.map(c => normalize(String(c)).toLowerCase());
+      const ALIASES = {
+        barcodes:['barcodes','cod_barras','codigo_barras','codbarras','ean','barcode'],
+        code:['code','codigo','cod_producto','sku'],
+        name:['name','nombre','descripcion','producto'],
+        measure:['measure','unidad','medida','um'],
+        status:['status','estado','activo'],
+        stock:['stock','cantidad_stock','stock_total','existencias'],
+        location:['location','ubicacion','ubicación','rack','bin','slot']
+      };
+      for(const key of Object.keys(ALIASES)){
+        for(const alias of ALIASES[key]){
+          const idx = h.indexOf(alias);
+          if(idx !== -1){ map[key] = idx; break; }
+        }
+      }
+      // Fallback por índice si faltan encabezados (A..F como app original)
+      map.barcodes ??= 0; // A
+      map.code ??= 1;     // B
+      map.name ??= 2;     // C
+      map.measure ??= 3;  // D
+      map.status ??= 4;   // E
+      map.stock ??= 5;    // F
+      // map.location opcional
+      return map;
+    }
+
+    function rowToProduct(row, map){
+      // barcodes: split por '|'
+      const barRaw = normalize(row[map.barcodes]);
+      const barcodes = barRaw ? barRaw.split('|').map(s => normalize(s)) : [];
+      const p = {
+        barcodes,
+        code: normalize(row[map.code]),
+        name: normalize(row[map.name]) || 'Sin nombre',
+        measure: normalize(row[map.measure]) || 'UND',
+        status: toInt(row[map.status], 0),
+        stock: toNum(row[map.stock], 0)
+      };
+      if(map.location !== undefined){
+        p.location = normalize(row[map.location]) || '';
+      }
+      return p;
+    }
+
+    // ======= Estado global =======
+// Guardar piso y pasillo fijados en localStorage
+const FIXED_LOC_KEY = 'fixedLocation';
+function getFixedLoc(){
+  return readLS(FIXED_LOC_KEY, {piso:'',pasillo:''});
+}
+function setFixedLoc(piso, pasillo){
+  writeLS(FIXED_LOC_KEY, {piso, pasillo});
+}
+function clearFixedLoc(){
+  writeLS(FIXED_LOC_KEY, {piso:'', pasillo:''});
+}
+    // Siempre leer desde localStorage al iniciar
+    let catalog = readLS(STORAGE.PRODUCTS, []); // productos importados
+    let counts = readLS(STORAGE.COUNTS, []);     // historial
+// Refuerzo: guardar historial en localStorage en cada cambio
+function persistCounts() {
+  writeLS(STORAGE.COUNTS, counts);
+}
+    let selectedProduct = null;
+
+    // ======= Login =======
+    async function ensureLogin(){
+      if(getUser()) return;
+      const { value: formValues } = await Swal.fire({
+        title: 'Iniciar sesión',
+        html: `
+          <input id="swal-user" class="swal2-input" placeholder="Usuario">
+          <input id="swal-pass" type="password" class="swal2-input" placeholder="Contraseña">
+        `,
+        focusConfirm: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        confirmButtonText: 'Entrar',
+        preConfirm: () => {
+          const u = document.getElementById('swal-user').value.trim();
+          const p = document.getElementById('swal-pass').value.trim();
+          if(!u || !p) return Swal.showValidationMessage('Ingresa usuario y contraseña');
+          // Demo: 2 usuarios
+          const ok = (u==='admin' && p==='1234') || (u==='auditor' && p==='1234');
+          if(!ok) return Swal.showValidationMessage('Credenciales inválidas');
+          return {u};
+        }
+      });
+      if(formValues?.u){ setUser(formValues.u); $('#userBadge').innerHTML = `<i class="fa-solid fa-user"></i><span>${formValues.u}</span>`; }
+    }
+
+    // ======= Importación =======
+    async function handleFile(file){
+        showSpinner(true);
+        try{
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, {type: 'array'});
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const rows = XLSX.utils.sheet_to_json(worksheet, {header:1});
+              if(!rows || rows.length < 2){
+                toast('warning','Archivo vacío o sin encabezados','Asegúrate de que el archivo tenga encabezados y al menos una fila de datos.');
+                showSpinner(false);
+                return;
+              }
+              const map = headersMap(rows[0]);
+              if(!map.code || !map.name){
+                toast('error','Encabezados incorrectos','La plantilla debe tener al menos Código y Nombre.');
+                showSpinner(false);
+                return;
+              }
+              const items = [];
+              let errores = 0;
+              for(let i=1;i<rows.length;i++){
+                const r = rows[i];
+                if(!r || r.length===0 || r.every(cell => !cell || String(cell).trim()==='')) continue;
+                const prod = rowToProduct(r, map);
+                if(!prod.code){ errores++; continue; }
+                items.push(prod);
+              }
+              if(items.length === 0){
+                toast('error','Sin productos válidos','No se encontraron productos con código.');
+                showSpinner(false);
+                return;
+              }
+              catalog = items;
+              writeLS(STORAGE.PRODUCTS, catalog);
+              $('#importStatus').innerHTML = `<span class="text-success">${catalog.length.toLocaleString()} productos cargados.</span> `+
+                (catalog.some(p=>p.location && p.location.length) ? 'Incluye ubicaciones preferentes.' : 'Sin columna de ubicación (opcional).')+
+                (errores ? `<br><span class='text-warning'>${errores} filas ignoradas por falta de código.</span>` : '');
+              $('#search').disabled = catalog.length===0;
+              $('#catalogSize').textContent = catalog.length.toLocaleString();
+              toast('success','Catálogo cargado','Listo para registrar.');
+              activateTab('register');
+            } catch(err) {
+              console.error(err);
+              toast('error','No se pudo leer','Verifica el formato del Excel.');
+            } finally {
+              showSpinner(false);
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }catch(err){
+          console.error(err);
+          toast('error','No se pudo leer','Verifica el formato del Excel.');
+          showSpinner(false);
+        }
+    }
+
+    // ======= Búsqueda =======
+    function filterCatalog(q){
+      q = (q||'').toString().trim().toLowerCase();
+      if(!q) return [];
+      const out = [];
+      for(const p of catalog){
+        const byCode = p.code?.toLowerCase().includes(q);
+        const byName = p.name?.toLowerCase().includes(q);
+        const byBarcode = (p.barcodes||[]).some(b => b.toLowerCase().includes(q));
+        if(byCode || byName || byBarcode){ out.push(p); if(out.length>=MAX_SUGGESTIONS) break; }
+      }
+      return out;
+    }
+
+    function renderSuggestions(list){
+      const box = $('#suggestions');
+      if(!list.length){ box.classList.add('d-none'); box.innerHTML=''; return; }
+      box.classList.remove('d-none');
+      box.innerHTML = list.map(p => `
+        <div class="suggestion-item" data-code="${p.code}">
+          <span class="suggestion-code">${p.code}</span>
+          <span class="suggestion-name">${p.name}</span>
+          ${p.status? '<span class="pill ok"><i class="fa-solid fa-circle-check"></i> Activo</span>':'<span class="pill bad"><i class="fa-solid fa-triangle-exclamation"></i> Inactivo</span>'}
+        </div>
+      `).join('');
+      $$('#suggestions .suggestion-item').forEach(el => el.addEventListener('click', () => {
+        const code = el.getAttribute('data-code');
+        const p = catalog.find(x => x.code===code);
+        if(p) selectProduct(p);
+        box.classList.add('d-none');
+        $('#search').value = code;
+      }));
+    }
+
+    function selectProduct(p){
+      selectedProduct = p;
+      $('#productInfo').classList.remove('d-none');
+      $('#kpiCode').textContent = p.code || '—';
+      $('#kpiName').textContent = p.name || '—';
+      $('#kpiStatus').innerHTML = p.status ? '<span class="pill ok"><i class="fa-solid fa-circle-check"></i> Activo</span>' : '<span class="pill bad"><i class="fa-solid fa-triangle-exclamation"></i> Inactivo</span>';
+      const stockVal = Number(p.stock || 0);
+      $('#kpiStock').textContent = stockVal.toLocaleString();
+      if(stockVal === 0){
+        $('#kpiStock').style.color = 'var(--danger)';
+      }else{
+        $('#kpiStock').style.color = '';
+      }
+
+      const t = truncateLoc(p.location);
+      $('#prefLocText').textContent = t.short;
+      const more = $('#prefLocMore');
+      if(t.full && t.full.length>LOCATION_DISPLAY_MAX){
+        more.classList.remove('d-none');
+        more.onclick = () => Swal.fire({icon:'info', title:'Ubicación preferente', text:t.full});
+      }else{
+        more.classList.add('d-none');
+        more.onclick = null;
+      }
+
+  // Preparar inputs
+  if($('#inputPiso')) $('#inputPiso').focus();
+    }
+
+    // ======= Guardar =======
+    async function saveRecord(){
+      if(!selectedProduct){ return toast('warning','Selecciona un producto','Busca y elige un producto primero.'); }
+      // Validar y ensamblar ubicación
+      let pisoRaw = $('#inputPiso').value;
+      let pasilloRaw = $('#inputPasillo').value;
+      // Si los campos están bloqueados, asegúrate de tomar los valores fijados
+      if(window.bloqueoLocFijado){
+        const fixed = getFixedLoc();
+        pisoRaw = fixed.piso;
+        pasilloRaw = fixed.pasillo;
+        $('#inputPiso').value = fixed.piso;
+        $('#inputPasillo').value = fixed.pasillo;
+      }
+      const estanteNivelRaw = $('#inputEstanteNivel').value;
+      // Validación antes de normalizar: sin espacios ni caracteres especiales
+      const noEspChar = /^[A-Za-z0-9]+$/;
+      if(!noEspChar.test(pisoRaw) || !noEspChar.test(pasilloRaw) || !noEspChar.test(estanteNivelRaw)){
+        return toast('warning','Ubicación inválida','No se permiten espacios ni caracteres especiales en ningún campo.');
+      }
+      const piso = normalize(pisoRaw).toUpperCase();
+      const pasillo = normalize(pasilloRaw).toUpperCase();
+      const estanteNivel = normalize(estanteNivelRaw).toUpperCase();
+      // Piso: letra seguida de número
+      const pisoOk = /^[A-Z][0-9]+$/.test(piso);
+      // Pasillo: solo letras
+      const pasilloOk = /^[A-Z]+$/.test(pasillo);
+      // Estante+Nivel: número seguido de letra
+      const estanteNivelOk = /^[0-9]+[A-Z]$/.test(estanteNivel);
+      if(!pisoOk || !pasilloOk || !estanteNivelOk){
+        return toast('warning','Ubicación inválida',
+          '- Piso: debe iniciar con letra y terminar con número (ej: P5)\n'
+          + '- Pasillo: solo letras (ej: E)\n'
+          + '- Estante+Nivel: número seguido de letra (ej: 4C)');
+      }
+      const loc = `${piso}-${pasillo}-${estanteNivel}`;
+      // Validación post-ensamblado (por si se manipula el DOM)
+      if(!/^[A-Z][0-9]+-[A-Z]+-[0-9]+[A-Z]$/.test(loc)){
+        return toast('error','Ubicación inválida','El formato final no cumple el estándar.');
+      }
+      const qtyRaw = $('#inputQty').style.display==='none' ? null : $('#inputQty').value;
+      const qty = qtyRaw === null || qtyRaw === '' ? null : Math.max(0, Number(qtyRaw));
+
+      // Detección de duplicados
+      const existe = counts.some(r => r.productCode === selectedProduct.code);
+      if(existe){
+        const res = await Swal.fire({
+          icon:'warning',
+          title:'Producto ya registrado',
+          text:'Este producto ya tiene un registro en el historial. ¿Deseas continuar y guardar otro registro?',
+          showCancelButton:true,
+          confirmButtonText:'Sí, continuar',
+          cancelButtonText:'No, cancelar'
+        });
+        if(!res.isConfirmed){ return; }
+      }
+
+      const record = {
+        productCode: selectedProduct.code,
+        productName: selectedProduct.name,
+        productMeasure: selectedProduct.measure,
+        quantity: qty, // puede ser null
+        location: loc,
+        expectedLocation: selectedProduct.location || '',
+        timestamp: new Date().toISOString(),
+        type: 'ubicacion'
+      };
+      counts.push(record);
+  persistCounts();
+
+      // Recomendación si stock es cero y no se ingresó cantidad
+      if(Number(selectedProduct.stock) === 0 && (qty === null || qty === 0)){
+        await Swal.fire({
+          icon:'info',
+          title:'Stock en cero',
+          text:'El stock de este producto es cero. Se recomienda realizar un conteo físico y registrar la cantidad.',
+          confirmButtonText:'Entendido'
+        });
+      }
+
+      toast('success','Guardado','Registro almacenado.');
+      // limpiar inputs y búsqueda
+      $('#inputEstanteNivel').value='';
+      if($('#inputQty').style.display!=='none'){ $('#inputQty').value=''; }
+      $('#search').value='';
+      $('#search').focus();
+      $('#productInfo').classList.add('d-none');
+      selectedProduct = null;
+      renderHistory();
+      // Si los datos están bloqueados, SIEMPRE mostrar y bloquear los datos fijados después de guardar
+      if(window.bloqueoLocFijado){
+        mostrarDatosFijadosRegistro();
+      } else {
+        $('#inputPiso').value='';
+        $('#inputPasillo').value='';
+        if($('#inputPiso')) $('#inputPiso').classList.remove('highlight-fixed');
+        if($('#inputPasillo')) $('#inputPasillo').classList.remove('highlight-fixed');
+      }
+    }
+
+    // ======= Historial =======
+    function renderHistory(){
+      const q = $('#historySearch').value?.toLowerCase().trim() || '';
+      const tbody = $('#historyTable tbody');
+      const data = [...counts].sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+      const filtered = q ? data.filter(r =>
+        (r.productCode||'').toLowerCase().includes(q) ||
+        (r.productName||'').toLowerCase().includes(q) ||
+        (r.location||'').toLowerCase().includes(q) ||
+        (r.expectedLocation||'').toLowerCase().includes(q)
+      ) : data;
+
+      $('#historyCount').textContent = `${filtered.length} registros`;
+      tbody.innerHTML = filtered.map((r, idx) => `
+        <tr>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td><code>${r.productCode}</code></td>
+          <td>${r.productName}</td>
+          <td><span class="badge-loc"><i class="fa-solid fa-location-dot"></i> ${r.location||'—'}</span></td>
+          <td>${ r.expectedLocation ? `<span class="badge-loc" title="Ubicación preferente">${truncateLoc(r.expectedLocation).short}</span>` : '<span class="text-secondary">—</span>' }</td>
+          <td class="text-end">${ r.quantity ?? '—' }</td>
+          <td><button class="btn btn-sm btn-outline-primary" onclick="editHistoryRecord(${counts.indexOf(r)})"><i class='fa-solid fa-pen'></i></button></td>
+        </tr>
+      `).join('');
+    }
+
+    // Edición de historial
+    window.editHistoryRecord = function(idx){
+      const r = counts[idx];
+      Swal.fire({
+        title: 'Editar registro',
+        html: `
+          <div style='text-align:left; font-size:0.95em;'>
+            <div style='display:flex;flex-wrap:wrap;gap:6px;'>
+              <div style='flex:1 1 120px;'>
+                <label style='font-size:0.9em;'>Código</label>
+                <input id='editCode' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.productCode}' disabled>
+              </div>
+              <div style='flex:2 1 180px;'>
+                <label style='font-size:0.9em;'>Nombre</label>
+                <input id='editName' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.productName}' disabled>
+              </div>
+            </div>
+            <div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;'>
+              <div style='flex:1 1 120px;'>
+                <label style='font-size:0.9em;'>Ubicación registrada</label>
+                <input id='editLoc' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.location}'>
+              </div>
+              <div style='flex:1 1 80px;'>
+                <label style='font-size:0.9em;'>Cantidad</label>
+                <input id='editQty' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' type='number' min='0' value='${r.quantity ?? ''}'>
+              </div>
+            </div>
+          </div>
+          <style>
+            @media (max-width: 600px) {
+              .swal2-popup {font-size:0.85em !important;}
+              .swal2-input {font-size:0.85em !important;padding:3px 6px !important;}
+              label {font-size:0.85em !important;}
+            }
+          </style>
+        `,
+        showCancelButton:true,
+        confirmButtonText:'Guardar',
+        cancelButtonText:'Cancelar',
+        preConfirm: () => {
+          const loc = document.getElementById('editLoc').value.trim();
+          const qty = document.getElementById('editQty').value.trim();
+          if(!loc){ Swal.showValidationMessage('La ubicación es obligatoria'); return false; }
+          return {loc, qty};
+        }
+      }).then(res => {
+        if(res.isConfirmed && res.value){
+          counts[idx].location = res.value.loc;
+          counts[idx].quantity = res.value.qty === '' ? null : Math.max(0, Number(res.value.qty));
+          persistCounts();
+          renderHistory();
+          toast('success','Registro editado','Cambios guardados.');
+        }
+      });
+    }
+
+    // ======= Exportación =======
+    function exportHistory(){
+      if(!counts.length){ return toast('info','Nada que exportar','No hay registros.'); }
+      // Solicitar nombres y apellidos
+      Swal.fire({
+        title: 'Datos para exportar',
+        html: `<input id='swal-nombres' class='swal2-input' placeholder='Nombres'>
+               <input id='swal-apellidos' class='swal2-input' placeholder='Apellidos'>`,
+        confirmButtonText: 'Exportar',
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+          const nombres = document.getElementById('swal-nombres').value.trim();
+          const apellidos = document.getElementById('swal-apellidos').value.trim();
+          if(!nombres || !apellidos){
+            Swal.showValidationMessage('Debes ingresar nombres y apellidos');
+            return false;
+          }
+          return {nombres, apellidos};
+        }
+      }).then(res => {
+        if(!res.isConfirmed || !res.value) return;
+        const {nombres, apellidos} = res.value;
+        // Encabezados ordenados y nuevas columnas
+        const rows = [];
+        rows.push([`Exportado por: ${nombres} ${apellidos}`]);
+        rows.push(['Fecha','Código','Nombre','Estado','Stock','Medida','Ubicación registrada','Ubicación preferente','Cantidad','Ajuste requerido']);
+        for(const r of counts){
+          // Buscar producto en catálogo para estado y stock
+          const prod = catalog.find(p => p.code === r.productCode);
+          const estado = prod ? (prod.status ? 'Activo' : 'Inactivo') : '';
+          const stock = prod ? prod.stock : '';
+          // Lógica de ajuste requerido
+          let ajuste = '';
+          if(prod){
+            if(Number(stock) === 0 && r.location){
+              ajuste = 'Ingresar stock';
+            }else if(Number(stock) > 0 && !r.location){
+              ajuste = 'Registrar ubicación';
+            }else{
+              ajuste = '';
+            }
+          }
+          rows.push([
+            new Date(r.timestamp).toLocaleString(),
+            r.productCode,
+            r.productName,
+            estado,
+            stock,
+            r.productMeasure,
+            r.location||'',
+            r.expectedLocation||'',
+            r.quantity ?? '',
+            ajuste
+          ]);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+  const fecha = new Date();
+  const fechaStr = fecha.toISOString().slice(0,10);
+  const horaStr = fecha.toTimeString().slice(0,8).replace(/:/g, '-');
+  const nombreArchivo = `Historial_Ubicaciones_${nombres}_${apellidos}_${fechaStr}_${horaStr}.xlsx`;
+  XLSX.writeFile(wb, nombreArchivo);
+      });
+    }
+
+    // ======= Limpieza =======
+    function clearCatalog(){
+      Swal.fire({
+        icon:'warning', title:'Limpiar catálogo', text:'Se eliminarán los productos importados.', showCancelButton:true,
+        confirmButtonText:'Sí, eliminar', cancelButtonText:'Cancelar'
+      }).then(r => {
+        if(r.isConfirmed){ catalog = []; writeLS(STORAGE.PRODUCTS, catalog); $('#importStatus').textContent='Catálogo vacío.'; $('#search').disabled = true; $('#catalogSize').textContent='0'; toast('success','Listo','Catálogo eliminado'); }
+      });
+    }
+
+    function clearHistory(){
+      Swal.fire({
+        title:'¿Deseas borrar el historial?',
+        html:`<div style='text-align:left;font-size:1em;'>
+          <b>Antes de eliminar:</b><br>
+          <span style='color:var(--danger)'>Esta acción no se puede deshacer.</span><br>
+          <span>Te recomendamos <b>exportar el historial</b> antes de borrar.<br><br></span>
+          <button id='swal-export' class='swal2-confirm swal2-styled' style='background:var(--primary);margin-bottom:8px;'>Exportar historial</button><br>
+          <input id='swal-pass' type='password' class='swal2-input' placeholder='Contraseña'>
+        </div>`,
+        icon:'warning',
+        showCancelButton:true,
+        confirmButtonText:'Eliminar',
+        cancelButtonText:'Cancelar',
+        didOpen: () => {
+          document.getElementById('swal-export').onclick = () => { exportHistory(); };
+        },
+        preConfirm: () => {
+          const pass = document.getElementById('swal-pass').value.trim();
+          if(pass !== '0000'){
+            Swal.showValidationMessage('Contraseña incorrecta');
+            return false;
+          }
+          return true;
+        }
+      }).then(r => {
+        if(r.isConfirmed){ counts = []; persistCounts(); renderHistory(); toast('success','Listo','Historial eliminado'); }
+      });
+    }
+
+    // ======= Tabs =======
+    function activateTab(id){
+      // Si es ajustes, refresca datos
+      if(id==='settings'){
+        $('#settingsUserName').textContent = getUser() || 'Invitado';
+        $('#settingsTheme').value = document.body.classList.contains('theme-light') ? 'light' : 'dark';
+        // Mostrar piso y pasillo fijados
+        const fixed = getFixedLoc();
+        $('#settingsFixedPiso').value = fixed.piso;
+        $('#settingsFixedPasillo').value = fixed.pasillo;
+      }
+      $$('.tab-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-tab')===id));
+      $$('.module').forEach(m=>m.classList.toggle('active', m.id===`module-${id}`));
+      // Si es ajustes, refresca datos
+      if(id==='settings'){
+        $('#settingsUserName').textContent = getUser() || 'Invitado';
+        $('#settingsTheme').value = document.body.classList.contains('theme-light') ? 'light' : 'dark';
+      }
+    }
+
+    // ======= Eventos =======
+    // Estado de bloqueo de piso y pasillo (debe estar en el scope global del script)
+    window.bloqueoLocFijado = window.bloqueoLocFijado || false;
+
+    // Fijar/desbloquear piso y pasillo desde ajustes
+    $('#settingsSaveFixedLoc').addEventListener('click', () => {
+      if (!window.bloqueoLocFijado) {
+        Swal.fire({
+          title:'Fijar piso y pasillo',
+          html:`<div style='text-align:left;font-size:1em;'>
+            <b>Ingresa la contraseña para guardar:</b><br>
+            <input id='swal-pass-fixed' type='password' class='swal2-input' placeholder='Contraseña'>
+          </div>`,
+          icon:'question',
+          showCancelButton:true,
+          confirmButtonText:'Guardar y bloquear',
+          cancelButtonText:'Cancelar',
+          preConfirm: () => {
+            const pass = document.getElementById('swal-pass-fixed').value.trim();
+            if(pass !== '0000'){
+              Swal.showValidationMessage('Contraseña incorrecta');
+              return false;
+            }
+            // Validar piso y pasillo
+            const pisoRaw = $('#settingsFixedPiso').value;
+            const pasilloRaw = $('#settingsFixedPasillo').value;
+            const noEspChar = /^[A-Za-z0-9]+$/;
+            if(!noEspChar.test(pisoRaw) || !noEspChar.test(pasilloRaw)){
+              Swal.showValidationMessage('No se permiten espacios ni caracteres especiales.');
+              return false;
+            }
+            const piso = pisoRaw.toUpperCase();
+            const pasillo = pasilloRaw.toUpperCase();
+            const pisoOk = /^[A-Z][0-9]+$/.test(piso);
+            const pasilloOk = /^[A-Z]+$/.test(pasillo);
+            if(!pisoOk){
+              Swal.showValidationMessage('Piso debe iniciar con letra y terminar con número (ej: P5)');
+              return false;
+            }
+            if(!pasilloOk){
+              Swal.showValidationMessage('Pasillo solo puede contener letras (ej: E)');
+              return false;
+            }
+            return {piso, pasillo};
+          }
+        }).then(r => {
+          if(r.isConfirmed && r.value){
+            setFixedLoc(r.value.piso, r.value.pasillo);
+            $('#settingsFixedPiso').value = r.value.piso;
+            $('#settingsFixedPasillo').value = r.value.pasillo;
+            toast('success','Guardado','Piso y pasillo fijados y bloqueados.');
+            window.bloqueoLocFijado = true;
+            // Limpiar campos en el registro antes de fijar
+            if($('#inputPiso')) $('#inputPiso').value = '';
+            if($('#inputPasillo')) $('#inputPasillo').value = '';
+            mostrarDatosFijadosRegistro();
+            actualizarBloqueoLocFijado();
+          }
+        });
+      } else {
+        // Desbloquear
+
+        Swal.fire({
+          title:'Desbloquear piso y pasillo',
+          html:`<div style='text-align:left;font-size:1em;'>
+            <b>Ingresa la contraseña para desbloquear:</b><br>
+            <input id='swal-pass-unlock' type='password' class='swal2-input' placeholder='Contraseña'>
+          </div>`,
+          icon:'question',
+          showCancelButton:true,
+          confirmButtonText:'Desbloquear',
+          cancelButtonText:'Cancelar',
+          preConfirm: () => {
+            const pass = document.getElementById('swal-pass-unlock').value.trim();
+            if(pass !== '0000'){
+              Swal.showValidationMessage('Contraseña incorrecta');
+              return false;
+            }
+            return true;
+          }
+        }).then(r => {
+          if(r.isConfirmed){
+            window.bloqueoLocFijado = false;
+            clearFixedLoc();
+            actualizarBloqueoLocFijado();
+            // Quitar datos fijados y desbloquear
+            if($('#inputPiso')) {
+              $('#inputPiso').value = '';
+              $('#inputPiso').removeAttribute('readonly');
+              $('#inputPiso').classList.remove('highlight-fixed');
+            }
+            if($('#inputPasillo')) {
+              $('#inputPasillo').value = '';
+              $('#inputPasillo').removeAttribute('readonly');
+              $('#inputPasillo').classList.remove('highlight-fixed');
+            }
+            toast('success','Desbloqueado','Ahora puedes editar piso y pasillo en el registro.');
+          }
+        });
+      }
+    });
+
+    // Mostrar estado de bloqueo en ajustes
+function mostrarEstadoBloqueoAjustes() {
+  const estado = document.getElementById('settingsFixedStatus');
+  if (!estado) return;
+  if (window.bloqueoLocFijado) {
+    estado.innerHTML = '<span class="badge bg-danger"><i class="fa-solid fa-lock"></i> Ubicaciones fijadas</span>';
+  } else {
+    estado.innerHTML = '<span class="badge bg-success"><i class="fa-solid fa-unlock"></i> Ubicaciones libres</span>';
+  }
+}
+
+// Actualiza el estado de bloqueo en los campos del registro y el botón
+    function actualizarBloqueoLocFijado() {
+      const btn = $('#settingsSaveFixedLoc');
+      mostrarEstadoBloqueoAjustes();
+      if (window.bloqueoLocFijado) {
+        btn.textContent = 'Desbloquear piso y pasillo';
+        btn.classList.add('btn-danger');
+        btn.classList.remove('btn-outline-primary');
+        if($('#inputPiso')) {
+          $('#inputPiso').setAttribute('readonly', 'readonly');
+          $('#inputPiso').classList.add('highlight-fixed');
+        }
+        if($('#inputPasillo')) {
+          $('#inputPasillo').setAttribute('readonly', 'readonly');
+          $('#inputPasillo').classList.add('highlight-fixed');
+        }
+      } else {
+        btn.textContent = 'Fijar piso y pasillo';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-outline-primary');
+        if($('#inputPiso')) {
+          $('#inputPiso').removeAttribute('readonly');
+          $('#inputPiso').classList.remove('highlight-fixed');
+        }
+        if($('#inputPasillo')) {
+          $('#inputPasillo').removeAttribute('readonly');
+          $('#inputPasillo').classList.remove('highlight-fixed');
+        }
+      }
+    }
+
+    // Sincronización reactiva: actualiza los campos del registro cuando cambian los valores en ajustes
+    function sincronizarCamposRegistro(piso, pasillo) {
+      if($('#inputPiso') && !window.bloqueoLocFijado) $('#inputPiso').value = piso;
+      if($('#inputPasillo') && !window.bloqueoLocFijado) $('#inputPasillo').value = pasillo;
+    }
+
+    // Detecta cambios en los inputs de ajustes y actualiza el registro automáticamente
+    $('#settingsFixedPiso').addEventListener('input', (e) => {
+      sincronizarCamposRegistro(e.target.value.toUpperCase(), $('#settingsFixedPasillo').value.toUpperCase());
+    });
+    $('#settingsFixedPasillo').addEventListener('input', (e) => {
+      sincronizarCamposRegistro($('#settingsFixedPiso').value.toUpperCase(), e.target.value.toUpperCase());
+    });
+
+    // Aplica el estado de bloqueo al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+      clearFixedLoc();
+      window.bloqueoLocFijado = false;
+      if($('#inputPiso')) {
+        $('#inputPiso').value = '';
+        $('#inputPiso').removeAttribute('readonly');
+        $('#inputPiso').classList.remove('highlight-fixed');
+      }
+      if($('#inputPasillo')) {
+        $('#inputPasillo').value = '';
+        $('#inputPasillo').removeAttribute('readonly');
+        $('#inputPasillo').classList.remove('highlight-fixed');
+      }
+      mostrarEstadoBloqueoAjustes();
+      actualizarBloqueoLocFijado();
+    });
+    document.addEventListener('DOMContentLoaded', async () => {
+  // Autocompletar piso y pasillo fijados en registro
+  const fixedLoc = getFixedLoc();
+  if(fixedLoc.piso && $('#inputPiso')) $('#inputPiso').value = fixedLoc.piso;
+  if(fixedLoc.pasillo && $('#inputPasillo')) $('#inputPasillo').value = fixedLoc.pasillo;
+      // Login
+      await ensureLogin();
+
+      // Estado inicial UI
+      $('#userBadge').innerHTML = `<i class=\"fa-solid fa-user\"></i><span>${getUser()||'Invitado'}</span>`;
+      $('#search').disabled = (catalog.length===0);
+      $('#catalogSize').textContent = catalog.length.toLocaleString();
+      renderHistory();
+
+  // Sidebar menú hamburguesa
+  const sidebar = $('#sidebarMenu');
+  const menuBtn = $('#menuBtn');
+  const closeSidebar = $('#closeSidebar');
+  const sidebarLinks = $$('.sidebar-link');
+  const btnSettings = $('#btnSettings');
+  const btnTheme = $('#btnTheme');
+
+      function openSidebar() {
+        sidebar.classList.add('open');
+        menuBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => { sidebar.focus(); }, 300);
+      }
+      function closeSidebarMenu() {
+        sidebar.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+      }
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidebar.classList.contains('open')) {
+          closeSidebarMenu();
+        } else {
+          openSidebar();
+        }
+      });
+      menuBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          menuBtn.click();
+        }
+      });
+      closeSidebar.addEventListener('click', closeSidebarMenu);
+      closeSidebar.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeSidebarMenu();
+        }
+      });
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          activateTab(link.getAttribute('data-tab'));
+          closeSidebarMenu();
+        });
+        link.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            link.click();
+          }
+        });
+      });
+      btnSettings.addEventListener('click', () => {
+        activateTab('settings');
+        closeSidebarMenu();
+      });
+      // Cambiar tema desde el botón del menú hamburguesa
+      btnTheme.addEventListener('click', () => {
+        const isLight = document.body.classList.contains('theme-light');
+        document.body.classList.toggle('theme-light', !isLight);
+        // Sincroniza el selector de ajustes si está presente
+        const themeSel = $('#settingsTheme');
+        if(themeSel) themeSel.value = !isLight ? 'light' : 'dark';
+      });
+      document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuBtn) {
+          closeSidebarMenu();
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+          closeSidebarMenu();
+          menuBtn.focus();
+        }
+      });
+
+      // Ajustes: tema
+      $('#settingsTheme').addEventListener('change', (e) => {
+        if(e.target.value==='light'){
+          document.body.classList.add('theme-light');
+        }else{
+          document.body.classList.remove('theme-light');
+        }
+      });
+      // Ajustes: reset catálogo
+      $('#settingsResetCatalog').addEventListener('click', () => {
+        Swal.fire({
+          icon:'warning', title:'Resetear catálogo', text:'¿Seguro que deseas eliminar todos los productos importados?', showCancelButton:true,
+          confirmButtonText:'Sí, eliminar', cancelButtonText:'Cancelar'
+        }).then(r => {
+          if(r.isConfirmed){ catalog = []; writeLS(STORAGE.PRODUCTS, catalog); $('#importStatus').textContent='Catálogo vacío.'; $('#search').disabled = true; $('#catalogSize').textContent='0'; toast('success','Listo','Catálogo eliminado'); }
+        });
+      });
+      // Ajustes: reset historial
+      $('#settingsResetHistory').addEventListener('click', () => {
+        Swal.fire({
+          title:'¿Deseas borrar el historial?',
+          html:`<div style='text-align:left;font-size:1em;'>
+            <b>Antes de eliminar:</b><br>
+            <span style='color:var(--danger)'>Esta acción no se puede deshacer.</span><br>
+            <span>Te recomendamos <b>exportar el historial</b> antes de borrar.<br><br></span>
+            <button id='swal-export' class='swal2-confirm swal2-styled' style='background:var(--primary);margin-bottom:8px;'>Exportar historial</button><br>
+            <input id='swal-pass' type='password' class='swal2-input' placeholder='Contraseña'>
+          </div>`,
+          icon:'warning',
+          showCancelButton:true,
+          confirmButtonText:'Eliminar',
+          cancelButtonText:'Cancelar',
+          didOpen: () => {
+            document.getElementById('swal-export').onclick = () => { exportHistory(); };
+          },
+          preConfirm: () => {
+            const pass = document.getElementById('swal-pass').value.trim();
+            if(pass !== '0000'){
+              Swal.showValidationMessage('Contraseña incorrecta');
+              return false;
+            }
+            return true;
+          }
+        }).then(r => {
+          if(r.isConfirmed){ counts = []; persistCounts(); renderHistory(); toast('success','Listo','Historial eliminado'); }
+        });
+      });
+
+      // Tabs (ocultos, solo sidebar)
+      $$('.tab-btn').forEach(btn => btn.style.display = 'none');
+
+      // Import
+      $('#fileInput').addEventListener('change', (e)=>{
+        const f = e.target.files?.[0]; if(f) handleFile(f);
+      });
+      $('#btnClearData').addEventListener('click', clearCatalog);
+        // Descargar plantilla
+        $('#btnDownloadTemplate').addEventListener('click', ()=>{
+          const headers = ['Cód. barras','Código','Nombre','Unidad/Medida','Estado','Stock','Ubicación'];
+          const example = ['','A001','PRODUCTO DE EJEMPLO','UND','1','100','A01-01-A'];
+          const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+          XLSX.writeFile(wb, 'Plantilla_Auditoria_Ubicaciones.xlsx');
+        });
+
+      // Búsqueda
+      $('#search').addEventListener('input', (e)=>{
+        const q = e.target.value; const list = filterCatalog(q); renderSuggestions(list);
+      });
+      document.addEventListener('click',(ev)=>{
+        if(!$('#suggestions').contains(ev.target) && ev.target!==$('#search')){ $('#suggestions').classList.add('d-none'); }
+      });
+
+      // Cantidad opcional
+      $('#toggleQty').addEventListener('click', ()=>{
+        const el = $('#inputQty');
+        const vis = (el.style.display!=='none');
+        el.style.display = vis ? 'none' : '';
+        if(!vis) el.focus(); else $('#inputLocation').focus();
+      });
+
+      // Guardar
+      $('#btnSave').addEventListener('click', saveRecord);
+
+      // Historial
+      $('#historySearch').addEventListener('input', renderHistory);
+      $('#btnExport').addEventListener('click', exportHistory);
+      $('#btnClearHistory').addEventListener('click', clearHistory);
+    });
+  </script>
+  <!-- Reemplaza el botón por un switch visual -->
+  <script>
+    const ajustesCard = document.querySelector('#module-settings .cardx');
+if (ajustesCard && !document.getElementById('settingsFixedSwitchWrap')) {
+  const divSwitch = document.createElement('div');
+  divSwitch.id = 'settingsFixedSwitchWrap';
+  divSwitch.className = 'd-flex align-items-center mb-2 gap-2';
+  divSwitch.innerHTML = `
+    <label class="form-switch">
+      <input type="checkbox" id="settingsFixedSwitch" />
+      <span class="slider"></span>
+    </label>
+    <span class="ms-2">Fijar piso y pasillo</span>
+    <span id="settingsFixedSwitchStatus" class="badge bg-secondary ms-2">Desactivado</span>
+  `;
+  ajustesCard.insertBefore(divSwitch, ajustesCard.children[1]);
+}
+// Estilos para el switch
+const styleSwitch = document.createElement('style');
+styleSwitch.innerHTML = `
+.form-switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+.form-switch input { opacity: 0; width: 0; height: 0; }
+.form-switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 24px; }
+.form-switch .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; transition: .4s; border-radius: 50%; }
+.form-switch input:checked + .slider { background: #6366f1; }
+.form-switch input:checked + .slider:before { transform: translateX(24px); }
+`;
+document.head.appendChild(styleSwitch);
+
+// Lógica del switch
+const switchInput = document.getElementById('settingsFixedSwitch');
+const switchStatus = document.getElementById('settingsFixedSwitchStatus');
+if(switchInput){
+  switchInput.checked = false;
+  switchStatus.textContent = 'Desactivado';
+  switchStatus.className = 'badge bg-secondary ms-2';
+  switchInput.addEventListener('change', async function(){
+    if(this.checked){
+      // Validar campos antes de solicitar contraseña
+      const pisoRaw = $('#settingsFixedPiso').value.trim();
+      const pasilloRaw = $('#settingsFixedPasillo').value.trim();
+      if(!pisoRaw || !pasilloRaw){
+        Swal.fire({icon:'warning',title:'Campos vacíos',text:'Debes ingresar piso y pasillo antes de fijar.'});
+        this.checked = false;
+        switchStatus.textContent = 'Desactivado';
+        switchStatus.className = 'badge bg-secondary ms-2';
+        return;
+      }
+      // Validaciones de requisitos
+      const pisoOk = /^[A-Z][0-9]+$/.test(pisoRaw.toUpperCase());
+      const pasilloOk = /^[A-Z]$/.test(pasilloRaw.toUpperCase());
+      if(!pisoOk || !pasilloOk){
+        Swal.fire({icon:'error',title:'Datos inválidos',text:'Piso debe iniciar con letra y terminar con número. Pasillo debe ser solo una letra.'});
+        this.checked = false;
+        switchStatus.textContent = 'Desactivado';
+        switchStatus.className = 'badge bg-secondary ms-2';
+        return;
+      }
+      // Solicita contraseña para activar
+      const res = await Swal.fire({
+        title:'Activar fijación',
+        html:`<div style='text-align:left;font-size:1em;'>
+          <b>Ingresa la contraseña para activar:</b><br>
+          <input id='swal-pass-fixed' type='password' class='swal2-input' placeholder='Contraseña'>
+        </div>`,
+        icon:'question',
+        showCancelButton:true,
+        confirmButtonText:'Activar',
+        cancelButtonText:'Cancelar',
+        preConfirm: () => {
+          const pass = document.getElementById('swal-pass-fixed').value.trim();
+          if(pass !== '0000'){
+            Swal.showValidationMessage('Contraseña incorrecta');
+            return false;
+          }
+          return true;
+        }
+      });
+      if(res.isConfirmed){
+        window.bloqueoLocFijado = true;
+        setFixedLoc(pisoRaw.toUpperCase(), pasilloRaw.toUpperCase());
+        mostrarDatosFijadosRegistro();
+        actualizarBloqueoLocFijado();
+        switchStatus.textContent = 'Activo';
+        switchStatus.className = 'badge bg-success ms-2';
+      }else{
+        this.checked = false;
+        switchStatus.textContent = 'Desactivado';
+        switchStatus.className = 'badge bg-secondary ms-2';
+      }
+    }else{
+      // Solicita contraseña para desactivar
+      const res = await Swal.fire({
+        title:'Desactivar fijación',
+        html:`<div style='text-align:left;font-size:1em;'>
+          <b>Ingresa la contraseña para desactivar:</b><br>
+          <input id='swal-pass-unlock' type='password' class='swal2-input' placeholder='Contraseña'>
+        </div>`,
+        icon:'question',
+        showCancelButton:true,
+        confirmButtonText:'Desactivar',
+        cancelButtonText:'Cancelar',
+        preConfirm: () => {
+          const pass = document.getElementById('swal-pass-unlock').value.trim();
+          if(pass !== '0000'){
+            Swal.showValidationMessage('Contraseña incorrecta');
+            return false;
+          }
+          return true;
+        }
+      });
+      if(res.isConfirmed){
+        window.bloqueoLocFijado = false;
+        clearFixedLoc();
+        actualizarBloqueoLocFijado();
+        if($('#inputPiso')) {
+          $('#inputPiso').value = '';
+          $('#inputPiso').removeAttribute('readonly');
+          $('#inputPiso').classList.remove('highlight-fixed');
+        }
+        if($('#inputPasillo')) {
+          $('#inputPasillo').value = '';
+          $('#inputPasillo').removeAttribute('readonly');
+          $('#inputPasillo').classList.remove('highlight-fixed');
+        }
+        switchStatus.textContent = 'Desactivado';
+        switchStatus.className = 'badge bg-secondary ms-2';
+      }else{
+        this.checked = true;
+        switchStatus.textContent = 'Activo';
+        switchStatus.className = 'badge bg-success ms-2';
+      }
+    }
+  });
+
+  // Agrega la función faltante para evitar el error '} expected'
+  function mostrarDatosFijadosRegistro() {
+    const fixed = getFixedLoc();
+    if($('#inputPiso')) {
+      $('#inputPiso').value = fixed.piso;
+      $('#inputPiso').setAttribute('readonly', 'readonly');
+      $('#inputPiso').classList.add('highlight-fixed');
+    }
+    if($('#inputPasillo')) {
+      $('#inputPasillo').value = fixed.pasillo;
+      $('#inputPasillo').setAttribute('readonly', 'readonly');
+      $('#inputPasillo').classList.add('highlight-fixed');
+    }
+  }
+} 
+  </script>
+</body>
+</html>
