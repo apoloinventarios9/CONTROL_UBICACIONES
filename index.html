@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<style>
+  /* Fondo blanco para el círculo del icono personalizado en SweetAlert2 */
+  .swal2-icon.swal2-warning, .swal2-icon.swal2-error, .swal2-icon.swal2-info, .swal2-icon.swal2-success, .swal2-icon.swal2-question {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  .swal2-icon .swal2-icon-content {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Auditoría / Control de Ubicaciones</title>
@@ -636,8 +647,8 @@ body.theme-light .pill.bad {
       infoDiv.innerHTML = '';
       return;
     }
-    var reg = Array.isArray(window.counts) ? window.counts.find(r => r.productCode === window.selectedProduct.code) : null;
-    if (!reg) {
+    var regs = Array.isArray(window.counts) ? window.counts.filter(r => r.productCode === window.selectedProduct.code) : [];
+    if (!regs.length) {
       infoDiv.innerHTML = `
         <div style="background:rgba(99,102,241,0.08);border-radius:8px;padding:7px 12px;font-size:0.97em;color:#64748b;display:flex;align-items:center;justify-content:center;">
           <span style="color:#64748b;">No hay historial para el producto seleccionado.</span>
@@ -645,22 +656,27 @@ body.theme-light .pill.bad {
       `;
       return;
     }
-    const idx = window.counts.indexOf(reg);
-    const fecha = reg.timestamp ? new Date(reg.timestamp) : null;
-    const fechaStr = fecha ? fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString().slice(0,5) : '—';
     infoDiv.innerHTML = `
       <div class="selected-history-box">
-        <div class="shb-row">
-          <span><b>Código:</b> ${reg.productCode}</span>
-          <span><b>Ubicación:</b> ${reg.location || '<span style=\'color:#bbb\'>Sin ubicación</span>'}</span>
-        </div>
-        <div class="shb-row">
-          <span><b>Cantidad:</b> ${reg.quantity ?? '<span style=\'color:#bbb\'>—</span>'}</span>
-          <span><b>Fecha y hora:</b> ${fechaStr}</span>
-        </div>
-        <div class="shb-row shb-actions">
-          <button class="btn btn-outline-primary btn-sm" style="min-width:90px;" onclick="editHistoryRecord(${idx})"><i class="fa-solid fa-pen"></i> Editar</button>
-        </div>
+        ${regs.map((reg, i) => {
+          const idx = window.counts.indexOf(reg);
+          const fecha = reg.timestamp ? new Date(reg.timestamp) : null;
+          const fechaStr = fecha ? fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString().slice(0,5) : '—';
+          return `
+            <div class="shb-row">
+              <span><b>Código:</b> ${reg.productCode}</span>
+              <span><b>Ubicación:</b> ${reg.location || '<span style=\'color:#bbb\'>Sin ubicación</span>'}</span>
+            </div>
+            <div class="shb-row">
+              <span><b>Cantidad:</b> ${reg.quantity ?? '<span style=\'color:#bbb\'>—</span>'}</span>
+              <span><b>Fecha y hora:</b> ${fechaStr}</span>
+            </div>
+            <div class="shb-row shb-actions">
+              <button class="btn btn-outline-primary btn-sm" style="min-width:90px;" onclick="editHistoryRecord(${idx})"><i class="fa-solid fa-pen"></i> Editar</button>
+            </div>
+            <hr style="margin:8px 0;border-top:1px solid #e0e7ef;">
+          `;
+        }).join('')}
       </div>
       <style>
         .selected-history-box {
@@ -928,11 +944,17 @@ function persistCounts() {
     // ======= Login =======
     async function ensureLogin(){
       if(getUser()) return;
+      const rememberedUser = localStorage.getItem('rememberedUser') || '';
+      const rememberedPass = localStorage.getItem('rememberedPass') || '';
       const { value: formValues } = await Swal.fire({
         title: 'Iniciar sesión',
         html: `
-          <input id="swal-user" class="swal2-input" placeholder="Usuario">
-          <input id="swal-pass" type="password" class="swal2-input" placeholder="Contraseña">
+          <input id="swal-user" class="swal2-input" placeholder="Usuario" value="${rememberedUser}">
+          <input id="swal-pass" type="password" class="swal2-input" placeholder="Contraseña" value="${rememberedPass}">
+          <div style="text-align:left;margin-top:8px;font-size:0.97em;">
+            <input type="checkbox" id="swal-remember" style="vertical-align:middle;margin-right:6px;">
+            <label for="swal-remember" style="vertical-align:middle;">Recordar contraseña</label>
+          </div>
         `,
         focusConfirm: false,
         allowOutsideClick: false,
@@ -955,10 +977,18 @@ function persistCounts() {
         preConfirm: () => {
           const u = document.getElementById('swal-user').value.trim().toLowerCase();
           const p = document.getElementById('swal-pass').value.trim();
+          const remember = document.getElementById('swal-remember').checked;
           if(!u || !p) return Swal.showValidationMessage('Ingresa usuario y contraseña');
           // Demo: 2 usuarios (usuario no sensible a mayúsculas/minúsculas)
           const ok = (u==='admin' && p==='9090*') || (u==='conteo' && p==='123456');
           if(!ok) return Swal.showValidationMessage('Credenciales inválidas');
+          if(remember){
+            localStorage.setItem('rememberedUser', u);
+            localStorage.setItem('rememberedPass', p);
+          }else{
+            localStorage.removeItem('rememberedUser');
+            localStorage.removeItem('rememberedPass');
+          }
           return {u};
         }
       });
@@ -982,7 +1012,36 @@ function persistCounts() {
                 showSpinner(false);
                 return;
               }
+              // Permitir encabezados alternativos
+              const rawHeaders = rows[0].map(h => h.toString().trim().toUpperCase());
               const map = headersMap(rows[0]);
+              // Alternativas para los campos principales
+              if(!map.code){
+                // Buscar por 'CODIGO DE PRODUCTO' o 'CODIGO DE BARRAS'
+                const idxCode = rawHeaders.findIndex(h => h === 'CODIGO DE PRODUCTO' || h === 'CODIGO DE BARRAS');
+                if(idxCode !== -1) map.code = idxCode;
+              }
+              if(!map.name){
+                // Buscar por 'NOMBRE DEL PRODUCTO'
+                const idxName = rawHeaders.findIndex(h => h === 'NOMBRE DEL PRODUCTO');
+                if(idxName !== -1) map.name = idxName;
+              }
+              if(!map.measure){
+                const idxMeasure = rawHeaders.findIndex(h => h === 'MEDIDA');
+                if(idxMeasure !== -1) map.measure = idxMeasure;
+              }
+              if(!map.status){
+                const idxStatus = rawHeaders.findIndex(h => h === 'ESTADO');
+                if(idxStatus !== -1) map.status = idxStatus;
+              }
+              if(!map.stock){
+                const idxStock = rawHeaders.findIndex(h => h === 'STOCK');
+                if(idxStock !== -1) map.stock = idxStock;
+              }
+              if(!map.location){
+                const idxLoc = rawHeaders.findIndex(h => h === 'UBICACIONES' || h === 'UBICACION');
+                if(idxLoc !== -1) map.location = idxLoc;
+              }
               if(!map.code || !map.name){
                 toast('error','Encabezados incorrectos','La plantilla debe tener al menos Código y Nombre.');
                 showSpinner(false);
@@ -1092,6 +1151,14 @@ function persistCounts() {
 
     // ======= Guardar =======
     async function saveRecord(){
+  // Forzar fondo transparente en el icono de advertencia de SweetAlert2
+  const swalIconStyle = document.createElement('style');
+  swalIconStyle.innerHTML = '.swal2-icon { background: transparent !important; box-shadow: none !important; } .swal2-icon .swal2-icon-content { background: transparent !important; }';
+  document.head.appendChild(swalIconStyle);
+  // Eliminar fondo negro del icono de advertencia
+  const style = document.createElement('style');
+  style.innerHTML = '.swal2-icon.swal2-html-container { background: transparent !important; box-shadow: none !important; } .swal2-icon { background: transparent !important; box-shadow: none !important; }';
+  document.head.appendChild(style);
   if(!window.selectedProduct){ return toast('warning','Selecciona un producto','Busca y elige un producto primero.'); }
       // Validar y ensamblar ubicación
       let pisoRaw = $('#inputPiso').value;
@@ -1137,12 +1204,40 @@ function persistCounts() {
   const existe = window.counts.some(r => r.productCode === window.selectedProduct.code);
       if(existe){
         const res = await Swal.fire({
-          icon:'warning',
-          title:'Producto ya registrado',
-          text:'Este producto ya tiene un registro en el historial. ¿Deseas continuar y guardar otro registro?',
+          html: `
+            <div style="background:#fff;border-radius:12px;padding:18px 10px 10px 10px;text-align:center;">
+              <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;">
+                <span style="display:inline-block;width:130px;height:130px;background:transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-triangle-exclamation animated-alert-icon" style="color:#e3342f;font-size:5.2em;"></i>
+                </span>
+              </div>
+              <div style="font-size:1.25em;font-weight:600;color:#e3342f;margin-bottom:8px;">¡Advertencia importante!</div>
+              <div style="font-size:1em;color:#222;margin-bottom:12px;">Este producto ya tiene un registro en el historial.<br>¿Deseas continuar y guardar otro registro?</div>
+            </div>
+            <style>
+              @keyframes alertShake {
+                0% { transform: scale(1) rotate(0deg); }
+                20% { transform: scale(1.15) rotate(-8deg); }
+                40% { transform: scale(1.15) rotate(8deg); }
+                60% { transform: scale(1.15) rotate(-8deg); }
+                80% { transform: scale(1.15) rotate(8deg); }
+                100% { transform: scale(1) rotate(0deg); }
+              }
+              .animated-alert-icon {
+                animation: alertShake 0.7s cubic-bezier(.36,.07,.19,.97) both;
+                display: inline-block;
+              }
+            </style>
+          `,
           showCancelButton:true,
           confirmButtonText:'Sí, continuar',
-          cancelButtonText:'No, cancelar'
+          cancelButtonText:'No, cancelar',
+          background: '#fff',
+          customClass: {
+            popup: 'swal2-important-popup',
+            confirmButton: 'swal2-important-confirm',
+            cancelButton: 'swal2-important-cancel'
+          }
         });
         if(!res.isConfirmed){ return; }
       }
