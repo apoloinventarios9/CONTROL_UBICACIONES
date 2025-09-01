@@ -589,7 +589,161 @@ body.theme-light .pill.bad {
             </div>
           </div>
           <div class="col-md-3 d-grid d-md-block">
-            <button id="btnSave" class="btn btn-primary w-100"><i class="fa-solid fa-floppy-disk me-2"></i>Guardar registro</button>
+            <div class="d-flex gap-2 align-items-center" style="width:100%">
+              <button id="btnSave" class="btn btn-primary w-100" style="min-width:0;"><i class="fa-solid fa-floppy-disk me-2"></i>Guardar</button>
+              <button id="btnGoHistory" class="btn btn-warning w-100" style="min-width:0;"><i class="fa-solid fa-clock-rotate-left me-2"></i>Historial</button>
+              <button id="btnCancelReg" class="btn btn-outline-secondary w-100" style="min-width:0;"><i class="fa-solid fa-xmark me-2"></i>Cancelar</button>
+            </div>
+            <div id="selectedHistoryInfo" class="mt-2" style="display:none;"></div>
+<script>
+  // Listener para el botón 'Ir a registro' en historial
+  document.addEventListener('DOMContentLoaded', function(){
+    var btnGoReg = document.getElementById('btnGoRegister');
+    if(btnGoReg){
+      btnGoReg.onclick = function(){
+        if(typeof activateTab === 'function'){
+          activateTab('register');
+        } else if(typeof window.activateTab === 'function'){
+          window.activateTab('register');
+        }
+      };
+    }
+  });
+  // Botón cancelar registro: limpia campos y prepara para nueva búsqueda
+  document.addEventListener('DOMContentLoaded', function(){
+    var btnCancel = document.getElementById('btnCancelReg');
+    if(btnCancel){
+      btnCancel.onclick = function(){
+        // Limpiar campos
+        if(document.getElementById('inputPiso')) document.getElementById('inputPiso').value = '';
+        if(document.getElementById('inputPasillo')) document.getElementById('inputPasillo').value = '';
+        if(document.getElementById('inputEstanteNivel')) document.getElementById('inputEstanteNivel').value = '';
+        if(document.getElementById('inputQty')) document.getElementById('inputQty').value = '';
+        if(document.getElementById('search')) document.getElementById('search').value = '';
+        if(document.getElementById('productInfo')) document.getElementById('productInfo').classList.add('d-none');
+        window.selectedProduct = null;
+        renderSelectedHistoryInfo();
+        if(document.getElementById('search')) document.getElementById('search').focus();
+      };
+    }
+  });
+  // Mostrar historial breve del producto seleccionado en registro
+  function renderSelectedHistoryInfo() {
+    var infoDiv = document.getElementById('selectedHistoryInfo');
+    if (!infoDiv) return;
+    infoDiv.style.display = 'block';
+    if (!window.selectedProduct) {
+      infoDiv.innerHTML = '';
+      return;
+    }
+    var reg = Array.isArray(window.counts) ? window.counts.find(r => r.productCode === window.selectedProduct.code) : null;
+    if (!reg) {
+      infoDiv.innerHTML = `
+        <div style="background:rgba(99,102,241,0.08);border-radius:8px;padding:7px 12px;font-size:0.97em;color:#64748b;display:flex;align-items:center;justify-content:center;">
+          <span style="color:#64748b;">No hay historial para el producto seleccionado.</span>
+        </div>
+      `;
+      return;
+    }
+    const idx = window.counts.indexOf(reg);
+    const fecha = reg.timestamp ? new Date(reg.timestamp) : null;
+    const fechaStr = fecha ? fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString().slice(0,5) : '—';
+    infoDiv.innerHTML = `
+      <div class="selected-history-box">
+        <div class="shb-row">
+          <span><b>Código:</b> ${reg.productCode}</span>
+          <span><b>Ubicación:</b> ${reg.location || '<span style=\'color:#bbb\'>Sin ubicación</span>'}</span>
+        </div>
+        <div class="shb-row">
+          <span><b>Cantidad:</b> ${reg.quantity ?? '<span style=\'color:#bbb\'>—</span>'}</span>
+          <span><b>Fecha y hora:</b> ${fechaStr}</span>
+        </div>
+        <div class="shb-row shb-actions">
+          <button class="btn btn-outline-primary btn-sm" style="min-width:90px;" onclick="editHistoryRecord(${idx})"><i class="fa-solid fa-pen"></i> Editar</button>
+        </div>
+      </div>
+      <style>
+        .selected-history-box {
+          background: rgba(99,102,241,0.08);
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 1em;
+          color: #64748b;
+          max-width: 420px;
+          margin: 12px auto 0 auto;
+          box-shadow: 0 2px 8px rgba(99,102,241,0.07);
+        }
+        .shb-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: space-between;
+          margin-bottom: 4px;
+        }
+        .shb-actions {
+          justify-content: flex-end;
+          margin-top: 6px;
+        }
+        @media (max-width: 600px) {
+          .selected-history-box {
+            font-size: 0.97em;
+            max-width: 98vw;
+            padding: 8px 6px;
+          }
+          .shb-row {
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 2px;
+          }
+          .shb-actions {
+            justify-content: stretch;
+            margin-top: 8px;
+          }
+          .selected-history-box button {
+            width: 100%;
+            min-width: 0;
+          }
+        }
+      </style>
+    `;
+  }
+  // Actualizar al seleccionar producto y al buscar
+  document.addEventListener('DOMContentLoaded', function() {
+    if(window.selectedProduct){ renderSelectedHistoryInfo(); }
+    // Actualizar al seleccionar producto desde sugerencias
+    var searchInput = document.getElementById('search');
+    if(searchInput){
+      searchInput.addEventListener('input', function(){
+        setTimeout(renderSelectedHistoryInfo, 150);
+      });
+    }
+    // Actualizar al seleccionar producto desde selectProduct
+    if(typeof selectProduct === 'function'){
+      var oldSelectProduct = selectProduct;
+      window.selectProduct = function(p){
+        oldSelectProduct.apply(this, arguments);
+        renderSelectedHistoryInfo();
+      }
+    }
+  });
+  // También actualizar al guardar registro
+  if(window.renderHistory){
+    var oldRenderHistory = window.renderHistory;
+    window.renderHistory = function(){
+      oldRenderHistory.apply(this, arguments);
+      renderSelectedHistoryInfo();
+    }
+  }
+  // Acceso rápido al historial desde el registro
+  document.addEventListener('DOMContentLoaded', function() {
+    var btnGoHistory = document.getElementById('btnGoHistory');
+    if(btnGoHistory){
+      btnGoHistory.addEventListener('click', function(){
+        activateTab('history');
+      });
+    }
+  });
+</script>
           </div>
         </div>
 
@@ -602,37 +756,55 @@ body.theme-light .pill.bad {
     <!-- HISTORY -->
     <section id="module-history" class="module">
       <div class="cardx shadow-soft">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>Historial</h5>
-          <div class="d-flex gap-2">
-            <button id="btnExport" class="btn btn-outline-light"><i class="fa-solid fa-file-excel me-2"></i>Descargar Excel</button>
-            <button id="btnClearHistory" class="btn btn-outline-danger"><i class="fa-solid fa-trash-can me-2"></i>Limpiar</button>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0" style="font-size:1.1em;"><i class="fa-solid fa-clock-rotate-left me-2"></i>Historial</h5>
+            <button id="btnGoRegister" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-box-archive me-2"></i>Ir a registro</button>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button id="btnExport" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-file-excel me-2"></i>Descargar Excel</button>
+            <button id="btnClearHistory" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-trash-can me-2"></i>Limpiar</button>
           </div>
         </div>
         <div class="divider"></div>
 
         <div class="row g-2 align-items-center mb-2">
-          <div class="col-md-6">
+          <div class="col-12 col-md-6 mb-1 mb-md-0">
             <input id="historySearch" class="form-control" placeholder="Filtrar por código, nombre o ubicación..." />
           </div>
-          <div class="col-md-6 text-end small text-secondary" id="historyCount">0 registros</div>
+          <div class="col-12 col-md-6 text-end small text-secondary" id="historyCount">0 registros</div>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-dark table-striped align-middle" id="historyTable">
+        <div class="table-responsive" style="overflow-x:auto;">
+          <table class="table table-dark table-striped align-middle" id="historyTable" style="font-size:0.95em;min-width:600px;">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Ubicación registrada</th>
-                <th>Ubicación preferente</th>
-                <th>Cantidad</th>
+                <th style="min-width:80px;">Fecha</th>
+                <th style="min-width:70px;">Código</th>
+                <th style="min-width:120px;">Nombre</th>
+                <th style="min-width:110px;">Ubicación registrada</th>
+                <th style="min-width:110px;">Ubicación preferente</th>
+                <th style="min-width:70px;">Cantidad</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
+        <style>
+        @media (max-width: 600px) {
+          #module-history .cardx { padding: 4px 2px; border-radius: 8px; font-size: 0.92em; }
+          #module-history h5 { font-size: 1em !important; }
+          #module-history .divider { margin: 6px 0; }
+          #module-history .table-responsive { overflow-x: auto; }
+          #module-history table { font-size: 0.88em !important; min-width: 480px !important; }
+          #module-history th, #module-history td { padding: 4px 6px !important; }
+          #module-history th { font-size: 0.88em !important; }
+          #module-history td { font-size: 0.88em !important; }
+          #module-history .btn-sm { font-size: 0.88em !important; padding: 3px 7px !important; }
+          #module-history .row.g-2 { flex-direction: column !important; gap: 4px !important; }
+          #module-history .col-12 { width: 100% !important; max-width: 100% !important; }
+        }
+        </style>
       </div>
     </section>
   </div>
@@ -746,12 +918,12 @@ function clearFixedLoc(){
 }
     // Siempre leer desde localStorage al iniciar
     let catalog = readLS(STORAGE.PRODUCTS, []); // productos importados
-    let counts = readLS(STORAGE.COUNTS, []);     // historial
+  window.counts = readLS(STORAGE.COUNTS, []);     // historial
 // Refuerzo: guardar historial en localStorage en cada cambio
 function persistCounts() {
   writeLS(STORAGE.COUNTS, counts);
 }
-    let selectedProduct = null;
+  window.selectedProduct = null;
 
     // ======= Login =======
     async function ensureLogin(){
@@ -889,7 +1061,7 @@ function persistCounts() {
     }
 
     function selectProduct(p){
-      selectedProduct = p;
+  window.selectedProduct = p;
       $('#productInfo').classList.remove('d-none');
       $('#kpiCode').textContent = p.code || '—';
       $('#kpiName').textContent = p.name || '—';
@@ -901,6 +1073,7 @@ function persistCounts() {
       }else{
         $('#kpiStock').style.color = '';
       }
+      if(typeof renderSelectedHistoryInfo === 'function') renderSelectedHistoryInfo();
 
       const t = truncateLoc(p.location);
       $('#prefLocText').textContent = t.short;
@@ -919,7 +1092,7 @@ function persistCounts() {
 
     // ======= Guardar =======
     async function saveRecord(){
-      if(!selectedProduct){ return toast('warning','Selecciona un producto','Busca y elige un producto primero.'); }
+  if(!window.selectedProduct){ return toast('warning','Selecciona un producto','Busca y elige un producto primero.'); }
       // Validar y ensamblar ubicación
       let pisoRaw = $('#inputPiso').value;
       let pasilloRaw = $('#inputPasillo').value;
@@ -961,7 +1134,7 @@ function persistCounts() {
       const qty = qtyRaw === null || qtyRaw === '' ? null : Math.max(0, Number(qtyRaw));
 
       // Detección de duplicados
-      const existe = counts.some(r => r.productCode === selectedProduct.code);
+  const existe = window.counts.some(r => r.productCode === window.selectedProduct.code);
       if(existe){
         const res = await Swal.fire({
           icon:'warning',
@@ -975,20 +1148,20 @@ function persistCounts() {
       }
 
       const record = {
-        productCode: selectedProduct.code,
-        productName: selectedProduct.name,
-        productMeasure: selectedProduct.measure,
+        productCode: window.selectedProduct.code,
+        productName: window.selectedProduct.name,
+        productMeasure: window.selectedProduct.measure,
         quantity: qty, // puede ser null
         location: loc,
-        expectedLocation: selectedProduct.location || '',
+        expectedLocation: window.selectedProduct.location || '',
         timestamp: new Date().toISOString(),
         type: 'ubicacion'
       };
-      counts.push(record);
+      window.counts.push(record);
   persistCounts();
 
       // Recomendación si stock es cero y no se ingresó cantidad
-      if(Number(selectedProduct.stock) === 0 && (qty === null || qty === 0)){
+  if(Number(window.selectedProduct.stock) === 0 && (qty === null || qty === 0)){
         await Swal.fire({
           icon:'info',
           title:'Stock en cero',
@@ -1004,8 +1177,9 @@ function persistCounts() {
       $('#search').value='';
       $('#search').focus();
       $('#productInfo').classList.add('d-none');
-      selectedProduct = null;
-      renderHistory();
+  window.selectedProduct = null;
+  renderHistory();
+  if(typeof renderSelectedHistoryInfo === 'function') renderSelectedHistoryInfo();
       // Si los datos están bloqueados, SIEMPRE mostrar y bloquear los datos fijados después de guardar
       if(window.bloqueoLocFijado){
         mostrarDatosFijadosRegistro();
@@ -1046,11 +1220,19 @@ function persistCounts() {
     // Edición de historial
     window.editHistoryRecord = function(idx){
       const r = counts[idx];
+      // Desensamblar ubicación actual
+      let pisoVal = '', pasilloVal = '', estanteNivelVal = '';
+      if(r.location && /^[A-Z][0-9]+-[A-Z]+-[0-9]+[A-Z]$/.test(r.location)){
+        const parts = r.location.split('-');
+        pisoVal = parts[0] || '';
+        pasilloVal = parts[1] || '';
+        estanteNivelVal = parts[2] || '';
+      }
       Swal.fire({
         title: 'Editar registro',
         html: `
           <div style='text-align:left; font-size:0.95em;'>
-            <div style='display:flex;flex-wrap:wrap;gap:6px;'>
+            <div class='swal-edit-flex' style='display:flex;flex-wrap:wrap;gap:6px;'>
               <div style='flex:1 1 120px;'>
                 <label style='font-size:0.9em;'>Código</label>
                 <input id='editCode' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.productCode}' disabled>
@@ -1060,10 +1242,18 @@ function persistCounts() {
                 <input id='editName' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.productName}' disabled>
               </div>
             </div>
-            <div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;'>
-              <div style='flex:1 1 120px;'>
-                <label style='font-size:0.9em;'>Ubicación registrada</label>
-                <input id='editLoc' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' value='${r.location}'>
+            <div class='swal-edit-flex' style='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;'>
+              <div style='flex:1 1 80px;'>
+                <label style='font-size:0.9em;'>Piso</label>
+                <input id='editPiso' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' maxlength='3' placeholder='Ej: P5' value='${pisoVal}'>
+              </div>
+              <div style='flex:1 1 60px;'>
+                <label style='font-size:0.9em;'>Pasillo</label>
+                <input id='editPasillo' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' maxlength='1' placeholder='Ej: E' value='${pasilloVal}'>
+              </div>
+              <div style='flex:1 1 80px;'>
+                <label style='font-size:0.9em;'>Estante+Nivel</label>
+                <input id='editEstanteNivel' class='swal2-input' style='font-size:0.9em;padding:4px 8px;' maxlength='4' placeholder='Ej: 4C' value='${estanteNivelVal}'>
               </div>
               <div style='flex:1 1 80px;'>
                 <label style='font-size:0.9em;'>Cantidad</label>
@@ -1071,11 +1261,38 @@ function persistCounts() {
               </div>
             </div>
           </div>
+          <div class='mt-2 small text-secondary'>Formato estándar: <b>P5-E-4C</b> (Piso-Pasillo-EstanteNivel)</div>
           <style>
             @media (max-width: 600px) {
-              .swal2-popup {font-size:0.85em !important;}
+              .swal2-popup {
+                font-size:0.85em !important;
+                max-width: 95vw !important;
+                min-width: 260px !important;
+                width: auto !important;
+                padding:8px !important;
+              }
+              .swal-edit-flex {flex-direction:column !important;gap:2px !important;}
+              .swal-edit-flex > div { flex-basis: 60px !important; margin-bottom: 2px !important; }
               .swal2-input {font-size:0.85em !important;padding:3px 6px !important;}
               label {font-size:0.85em !important;}
+            }
+            body.theme-light .swal2-popup {
+              background: #fff !important;
+              color: #222 !important;
+            }
+            body:not(.theme-light) .swal2-popup {
+              background: #12172a !important;
+              color: #e5e7eb !important;
+            }
+            .swal2-input, .swal2-input:focus {
+              background: #0f172a !important;
+              color: #e5e7eb !important;
+              border: 1px solid rgba(255,255,255,.1) !important;
+            }
+            body.theme-light .swal2-input, body.theme-light .swal2-input:focus {
+              background: #fff !important;
+              color: #222 !important;
+              border: 1px solid #6366f1 !important;
             }
           </style>
         `,
@@ -1083,9 +1300,36 @@ function persistCounts() {
         confirmButtonText:'Guardar',
         cancelButtonText:'Cancelar',
         preConfirm: () => {
-          const loc = document.getElementById('editLoc').value.trim();
+          const piso = document.getElementById('editPiso').value.trim().toUpperCase();
+          const pasillo = document.getElementById('editPasillo').value.trim().toUpperCase();
+          const estanteNivel = document.getElementById('editEstanteNivel').value.trim().toUpperCase();
           const qty = document.getElementById('editQty').value.trim();
-          if(!loc){ Swal.showValidationMessage('La ubicación es obligatoria'); return false; }
+          if(!piso || !pasillo || !estanteNivel){
+            Swal.showValidationMessage('Debes completar Piso, Pasillo y Estante+Nivel.');
+            return false;
+          }
+          // Validación: sin espacios ni caracteres especiales
+          const noEspChar = /^[A-Za-z0-9]+$/;
+          if(!noEspChar.test(piso) || !noEspChar.test(pasillo) || !noEspChar.test(estanteNivel)){
+            Swal.showValidationMessage('No se permiten espacios ni caracteres especiales en ningún campo.');
+            return false;
+          }
+          // Piso: letra seguida de número
+          const pisoOk = /^[A-Z][0-9]+$/.test(piso);
+          // Pasillo: solo letras
+          const pasilloOk = /^[A-Z]+$/.test(pasillo);
+          // Estante+Nivel: número seguido de letra
+          const estanteNivelOk = /^[0-9]+[A-Z]$/.test(estanteNivel);
+          if(!pisoOk || !pasilloOk || !estanteNivelOk){
+            Swal.showValidationMessage('- Piso: debe iniciar con letra y terminar con número (ej: P5)\n- Pasillo: solo letras (ej: E)\n- Estante+Nivel: número seguido de letra (ej: 4C)');
+            return false;
+          }
+          const loc = `${piso}-${pasillo}-${estanteNivel}`;
+          // Validación final
+          if(!/^[A-Z][0-9]+-[A-Z]+-[0-9]+[A-Z]$/.test(loc)){
+            Swal.showValidationMessage('La ubicación debe tener el formato Piso-Pasillo-EstanteNivel (Ej: P5-E-4C)');
+            return false;
+          }
           return {loc, qty};
         }
       }).then(res => {
@@ -1094,6 +1338,11 @@ function persistCounts() {
           counts[idx].quantity = res.value.qty === '' ? null : Math.max(0, Number(res.value.qty));
           persistCounts();
           renderHistory();
+          // Reconsultar y renderizar historial breve actualizado
+          if(typeof renderSelectedHistoryInfo === 'function') {
+            // Vuelve a consultar el producto seleccionado y su historial
+            renderSelectedHistoryInfo();
+          }
           toast('success','Registro editado','Cambios guardados.');
         }
       });
