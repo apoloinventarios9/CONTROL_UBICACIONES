@@ -149,7 +149,7 @@ body.theme-light .logo span { color: #222 !important; }
           <button id="btnSettings" class="sidebar-action-btn" title="Ajustes"><i class="fa-solid fa-gear"></i></button>
           <button id="btnTheme" class="sidebar-action-btn" title="Cambiar tema"><i class="fa-solid fa-circle-half-stroke"></i></button>
         </div>
-        <div style="font-size:0.92em;color:var(--muted);text-align:center;margin-top:0.7em;">&copy; Miguel Fajardo 2025</div>
+        <div class="sidebar-footer-copy">&copy; 2025 Miguel Fajardo. Todos los derechos reservados.</div>
       </div>
     </div>
   </aside>
@@ -278,6 +278,28 @@ body.theme-light .logo span { color: #222 !important; }
       .sidebar-footer {
         border-top: 1px solid rgba(255,255,255,0.08);
         background: linear-gradient(90deg,rgba(99,102,241,.08),rgba(34,197,94,.04));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.7em;
+        padding: 1em 1.2em 0.7em 1.2em;
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .sidebar-footer-actions {
+        display: flex;
+        gap: 1em;
+        width: 100%;
+        justify-content: center;
+      }
+      .sidebar-footer-copy {
+        font-size: 0.92em;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 0.7em;
       }
       /* Animación icono hamburguesa */
       .hamburger-btn {
@@ -307,7 +329,8 @@ body.theme-light .logo span { color: #222 !important; }
         .sidebar-header, .sidebar-nav { padding-left: 0.4em; padding-right: 0.4em; }
         .sidebar-footer { padding:0.7em 0.4em; }
         .sidebar-action-btn { font-size: 1.2em; padding: 0.3em 0.5em; }
-        .sidebar-footer div { font-size:0.85em; }
+  .sidebar-footer-actions { gap: 0.6em; }
+  .sidebar-footer-copy { font-size: 0.85em; margin-top: 0.5em; }
       }
     @media (max-width: 600px) {
       html{font-size:11px;}
@@ -430,7 +453,8 @@ body.theme-light .pill.bad {
         </div>
         <div class="divider"></div>
         <div class="mt-2 small text-secondary">
-          <b>Versión:</b> 1.0 &nbsp; | &nbsp; <b>Desarrollador:</b> Miguel Fajardo<br>
+          <b>Versión:</b> 1.0 &nbsp; | &nbsp; <b>Desarrollador:</b> © 2025 Miguel Fajardo. Todos los derechos reservados.
+<br>
           <b>Descripción:</b> App para auditoría y control de ubicaciones de productos.<br>
           <b>Soporte:</b> <a href="mailto:soporte@ejemplo.com" style="color:var(--primary)">soporte@ejemplo.com</a>
         </div>
@@ -715,12 +739,26 @@ function persistCounts() {
         allowOutsideClick: false,
         allowEscapeKey: false,
         confirmButtonText: 'Entrar',
+        didRender: () => {
+          // Insertar el copyright debajo del botón
+          const swalContent = document.querySelector('.swal2-actions');
+          if(swalContent && !document.getElementById('copyrightLogin')){
+            const div = document.createElement('div');
+            div.id = 'copyrightLogin';
+            div.style.textAlign = 'center';
+            div.style.marginTop = '1em';
+            div.style.fontSize = '0.92em';
+            div.style.color = '#888';
+            div.textContent = '© 2025 Miguel Fajardo. Todos los derechos reservados.';
+            swalContent.parentNode.appendChild(div);
+          }
+        },
         preConfirm: () => {
-          const u = document.getElementById('swal-user').value.trim();
+          const u = document.getElementById('swal-user').value.trim().toLowerCase();
           const p = document.getElementById('swal-pass').value.trim();
           if(!u || !p) return Swal.showValidationMessage('Ingresa usuario y contraseña');
-          // Demo: 2 usuarios
-          const ok = (u==='admin' && p==='1234') || (u==='auditor' && p==='1234');
+          // Demo: 2 usuarios (usuario no sensible a mayúsculas/minúsculas)
+          const ok = (u==='admin' && p==='9090*') || (u==='conteo' && p==='123456');
           if(!ok) return Swal.showValidationMessage('Credenciales inválidas');
           return {u};
         }
@@ -1226,7 +1264,7 @@ function persistCounts() {
         Swal.fire({
           title:'Desbloquear piso y pasillo',
           html:`<div style='text-align:left;font-size:1em;'>
-            <b>Ingresa la contraseña para desbloquear:</b><br>
+            <b>Ingresa la contraseña para desactivar:</b><br>
             <input id='swal-pass-unlock' type='password' class='swal2-input' placeholder='Contraseña'>
           </div>`,
           icon:'question',
